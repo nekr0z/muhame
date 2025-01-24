@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"io"
 	"net/http"
 	"path"
 	"strings"
@@ -57,20 +58,13 @@ func (q *queue) sendMetrics(addr string) {
 
 		ep := endpoint(addr, metricType, m.name, m.val.String())
 
-		r, err := http.NewRequest(http.MethodPost, ep, nil)
+		resp, err := http.Post(ep, "text/plain", nil)
 		if err != nil {
 			panic(err)
 		}
 
-		r.Header.Add("Content-Type", "text/plain")
-
-		client := &http.Client{}
-		resp, err := client.Do(r)
-		if err != nil {
-			panic(err)
-		}
-
-		defer resp.Body.Close()
+		_, _ = io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
 	}
 }
 
