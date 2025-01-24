@@ -13,11 +13,11 @@ import (
 type queue struct {
 	sync.Mutex
 
-	first *metric
-	last  *metric
+	first *queuedMetric
+	last  *queuedMetric
 }
 
-func (q *queue) push(m metric) {
+func (q *queue) push(m queuedMetric) {
 	q.Lock()
 	defer q.Unlock()
 
@@ -33,7 +33,7 @@ func (q *queue) push(m metric) {
 	q.last = q.last.next
 }
 
-func (q *queue) pop() *metric {
+func (q *queue) pop() *queuedMetric {
 	q.Lock()
 	defer q.Unlock()
 
@@ -51,11 +51,11 @@ func (q *queue) sendMetrics(addr string) {
 	for m := q.pop(); m != nil; m = q.pop() {
 		metricType := "counter"
 
-		if _, ok := m.m.(metrics.Gauge); ok {
+		if _, ok := m.val.(metrics.Gauge); ok {
 			metricType = "gauge"
 		}
 
-		ep := endpoint(addr, metricType, m.name, m.m.String())
+		ep := endpoint(addr, metricType, m.name, m.val.String())
 
 		r, err := http.NewRequest(http.MethodPost, ep, nil)
 		if err != nil {
@@ -74,10 +74,14 @@ func (q *queue) sendMetrics(addr string) {
 	}
 }
 
-type metric struct {
+type queuedMetric struct {
 	name string
-	m    metrics.Metric
-	next *metric
+	val  metricValue
+	next *queuedMetric
+}
+
+type metricValue interface {
+	String() string
 }
 
 func endpoint(addr string, metricType string, name string, value string) string {

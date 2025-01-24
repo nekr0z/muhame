@@ -3,11 +3,6 @@ package metrics
 
 import "fmt"
 
-// Metric represents a metric.
-type Metric interface {
-	String() string
-}
-
 // Gauge represents a gauge metric.
 type Gauge float64
 

@@ -18,9 +18,18 @@ func TestEndpoint(t *testing.T) {
 		args args
 		want string
 	}{
-		{"basic", args{"http://localhost:8080", "counter", "test", "1"}, "http://localhost:8080/update/counter/test/1"},
-		{"trailing slash", args{"http://localhost:8080/", "gauge", "test", "1.1"}, "http://localhost:8080/update/gauge/test/1.1"},
+		{
+			name: "basic",
+			args: args{"http://localhost:8080", "counter", "test", "1"},
+			want: "http://localhost:8080/update/counter/test/1",
+		},
+		{
+			name: "trailing slash",
+			args: args{"http://localhost:8080/", "gauge", "test", "1.1"},
+			want: "http://localhost:8080/update/gauge/test/1.1",
+		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := endpoint(tt.args.addr, tt.args.metricType, tt.args.name, tt.args.value); got != tt.want {
