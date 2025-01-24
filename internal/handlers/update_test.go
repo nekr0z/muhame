@@ -62,6 +62,7 @@ func TestUpdateHandler(t *testing.T) {
 			UpdateHandler(w, req)
 
 			res := w.Result()
+			defer res.Body.Close()
 
 			assert.Equal(t, tt.want, res.StatusCode)
 		})
