@@ -50,22 +50,26 @@ func (q *queue) pop() *queuedMetric {
 
 func (q *queue) sendMetrics(addr string) {
 	for m := q.pop(); m != nil; m = q.pop() {
-		metricType := "counter"
-
-		if _, ok := m.val.(metrics.Gauge); ok {
-			metricType = "gauge"
-		}
-
-		ep := endpoint(addr, metricType, m.name, m.val.String())
-
-		resp, err := http.Post(ep, "text/plain", nil)
-		if err != nil {
-			panic(err)
-		}
-
-		_, _ = io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
+		sendMetric(*m, addr)
 	}
+}
+
+func sendMetric(m queuedMetric, addr string) {
+	metricType := "counter"
+
+	if _, ok := m.val.(metrics.Gauge); ok {
+		metricType = "gauge"
+	}
+
+	ep := endpoint(addr, metricType, m.name, m.val.String())
+
+	resp, err := http.Post(ep, "text/plain", nil)
+	if err != nil {
+		panic(err)
+	}
+
+	_, _ = io.Copy(io.Discard, resp.Body)
+	resp.Body.Close()
 }
 
 type queuedMetric struct {
