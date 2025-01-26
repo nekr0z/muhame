@@ -9,6 +9,7 @@ import (
 type MetricsStorage interface {
 	Update(string, metrics.Metric) error
 	Get(string, string) (metrics.Metric, error)
+	List() ([]string, []metrics.Metric, error)
 }
 
 var ErrMetricNotFound = fmt.Errorf("metric not found")

@@ -55,7 +55,7 @@ func TestSendMetric(t *testing.T) {
 				name: "test",
 				val:  metrics.Gauge(1.2),
 			},
-			want: "/update/gauge/test/1.200000",
+			want: "/update/gauge/test/1.2",
 		},
 		{
 			name: "counter",

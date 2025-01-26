@@ -50,3 +50,17 @@ func (s *MemStorage) Get(t, name string) (metrics.Metric, error) {
 
 	return m, nil
 }
+
+func (s *MemStorage) List() ([]string, []metrics.Metric, error) {
+	var names []string
+	var mms []metrics.Metric
+
+	for _, mm := range s.mm {
+		for name, m := range mm {
+			names = append(names, name)
+			mms = append(mms, m)
+		}
+	}
+
+	return names, mms, nil
+}

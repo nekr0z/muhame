@@ -26,7 +26,7 @@ func ParseGauge(s string) (Gauge, error) {
 }
 
 func (g Gauge) String() string {
-	return fmt.Sprintf("%f", g)
+	return fmt.Sprintf("%g", g)
 }
 
 func (g Gauge) Update(m Metric) (Metric, error) {

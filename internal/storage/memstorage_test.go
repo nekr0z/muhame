@@ -51,4 +51,11 @@ func TestMemStorage(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, m, metrics.Counter(5))
 	})
+
+	t.Run("list", func(t *testing.T) {
+		names, vals, err := ms.List()
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, names, []string{"test", "test"})
+		assert.ElementsMatch(t, vals, []metrics.Metric{metrics.Gauge(2.4), metrics.Counter(5)})
+	})
 }

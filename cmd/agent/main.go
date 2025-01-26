@@ -8,7 +8,10 @@ import (
 )
 
 func main() {
-	if err := agent.Run(context.TODO(), "http://localhost:8080"); err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err := agent.Run(ctx, "http://localhost:8080"); err != nil {
 		log.Fatal(err)
 	}
 }

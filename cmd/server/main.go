@@ -17,9 +17,13 @@ func main() {
 }
 
 func run() error {
+	st := storage.NewMemStorage()
+
 	r := chi.NewRouter()
 
-	r.Post("/update/{type}/{name}/{value}", handlers.UpdateHandleFunc(storage.NewMemStorage()))
+	r.Post("/update/{type}/{name}/{value}", handlers.UpdateHandleFunc(st))
+	r.Get("/value/{type}/{name}", handlers.ValueHandleFunc(st))
+	r.Get("/", handlers.RootHandleFunc(st))
 
 	return http.ListenAndServe(":8080", r)
 }

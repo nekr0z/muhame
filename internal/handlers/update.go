@@ -9,25 +9,9 @@ import (
 	"github.com/nekr0z/muhame/internal/metrics"
 )
 
-// UpdateHandleFunc is the handler for the /update/ endpoint.
+// UpdateHandleFunc returns the handler for the /update/ endpoint.
 func UpdateHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// if r.Method != http.MethodPost {
-		// 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		// 	return
-		// }
-
-		// p := strings.Split(strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/update/"), "/"), "/")
-
-		// if len(p) < 2 {
-		// 	http.Error(w, "Bad request, but the spec dictates a 404.", http.StatusNotFound)
-		// 	return
-		// }
-
-		// if len(p) != 3 {
-		// 	return
-		// }
-
 		var (
 			err error
 			m   metrics.Metric
@@ -54,7 +38,5 @@ func UpdateHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Request
 			http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
 			return
 		}
-
-		w.WriteHeader(http.StatusOK)
 	}
 }
