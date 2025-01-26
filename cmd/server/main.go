@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net/http"
 
@@ -13,7 +12,7 @@ import (
 )
 
 func main() {
-	flag.Parse()
+	parseFlags()
 
 	if err := run(flagNetAddress); err != nil {
 		log.Fatal(err)
