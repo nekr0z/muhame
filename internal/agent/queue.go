@@ -2,6 +2,7 @@ package agent
 
 import (
 	"io"
+	"log"
 	"net/http"
 	"path"
 	"strings"
@@ -65,7 +66,7 @@ func sendMetric(m queuedMetric, addr string) {
 
 	resp, err := http.Post(ep, "text/plain", nil)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 
 	_, _ = io.Copy(io.Discard, resp.Body)

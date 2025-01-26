@@ -1,22 +1,26 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/nekr0z/muhame/internal/addr"
 	"github.com/nekr0z/muhame/internal/handlers"
 	"github.com/nekr0z/muhame/internal/storage"
 )
 
 func main() {
-	if err := run(); err != nil {
+	flag.Parse()
+
+	if err := run(flagNetAddress); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func run() error {
+func run(addr addr.NetAddress) error {
 	st := storage.NewMemStorage()
 
 	r := chi.NewRouter()
@@ -25,5 +29,6 @@ func run() error {
 	r.Get("/value/{type}/{name}", handlers.ValueHandleFunc(st))
 	r.Get("/", handlers.RootHandleFunc(st))
 
-	return http.ListenAndServe(":8080", r)
+	log.Printf("running server on %s", addr.String())
+	return http.ListenAndServe(addr.String(), r)
 }
