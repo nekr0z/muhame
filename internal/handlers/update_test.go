@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/nekr0z/muhame/internal/metrics"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -59,7 +60,8 @@ func TestUpdateHandler(t *testing.T) {
 			req := httptest.NewRequest(tt.method, tt.path, nil)
 
 			w := httptest.NewRecorder()
-			UpdateHandler(w, req)
+			uhf := UpdateHandleFunc(zeroMetricStorage{})
+			uhf(w, req)
 
 			res := w.Result()
 			defer res.Body.Close()
@@ -67,4 +69,14 @@ func TestUpdateHandler(t *testing.T) {
 			assert.Equal(t, tt.want, res.StatusCode)
 		})
 	}
+}
+
+type zeroMetricStorage struct{}
+
+func (z zeroMetricStorage) Update(_ string, _ metrics.Metric) error {
+	return nil
+}
+
+func (zeroMetricStorage) Get(_, _ string) (metrics.Metric, error) {
+	return nil, ErrMetricNotFound
 }

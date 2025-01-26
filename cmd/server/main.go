@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/nekr0z/muhame/internal/handlers"
+	"github.com/nekr0z/muhame/internal/storage"
 )
 
 func main() {
@@ -15,7 +16,9 @@ func main() {
 
 func run() error {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/update/", handlers.UpdateHandler)
+
+	update := handlers.UpdateHandleFunc(storage.NewMemStorage())
+	mux.HandleFunc("/update/", update)
 
 	return http.ListenAndServe(":8080", mux)
 }
