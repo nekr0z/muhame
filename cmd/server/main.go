@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/nekr0z/muhame/internal/handlers"
 	"github.com/nekr0z/muhame/internal/storage"
 )
@@ -15,10 +17,9 @@ func main() {
 }
 
 func run() error {
-	mux := http.NewServeMux()
+	r := chi.NewRouter()
 
-	update := handlers.UpdateHandleFunc(storage.NewMemStorage())
-	mux.HandleFunc("/update/", update)
+	r.Post("/update/{type}/{name}/{value}", handlers.UpdateHandleFunc(storage.NewMemStorage()))
 
-	return http.ListenAndServe(":8080", mux)
+	return http.ListenAndServe(":8080", r)
 }

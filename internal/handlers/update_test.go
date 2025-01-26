@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/nekr0z/muhame/internal/metrics"
 	"github.com/stretchr/testify/assert"
 )
@@ -59,9 +60,11 @@ func TestUpdateHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(tt.method, tt.path, nil)
 
+			r := chi.NewRouter()
+			r.Post("/update/{type}/{name}/{value}", UpdateHandleFunc(zeroMetricStorage{}))
+
 			w := httptest.NewRecorder()
-			uhf := UpdateHandleFunc(zeroMetricStorage{})
-			uhf(w, req)
+			r.ServeHTTP(w, req)
 
 			res := w.Result()
 			defer res.Body.Close()
