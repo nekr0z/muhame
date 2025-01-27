@@ -16,6 +16,10 @@ func (n *NetAddress) String() string {
 	return fmt.Sprintf("%s:%d", n.Host, n.Port)
 }
 
+func (n *NetAddress) StringWithProto() string {
+	return fmt.Sprintf("https://%s:%d", n.Host, n.Port)
+}
+
 func (n *NetAddress) Set(flagValue string) error {
 	s := strings.Split(flagValue, ":")
 	if len(s) > 2 {

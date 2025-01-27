@@ -4,17 +4,26 @@ package agent
 import (
 	"context"
 	"time"
+
+	"github.com/nekr0z/muhame/internal/addr"
 )
 
 // Run starts the agent to collect all metrics and send them to the server.
-func Run(ctx context.Context, addr string, reportInterval, pollInterval time.Duration) error {
+func Run(ctx context.Context, config Config) error {
 	q := &queue{}
 
-	go collect(ctx, q, pollInterval)
-	go send(ctx, q, addr, reportInterval)
+	go collect(ctx, q, config.PollInterval)
+	go send(ctx, q, config.Address, config.ReportInterval)
 
 	<-ctx.Done()
 	return ctx.Err()
+}
+
+// Config configures the agent.
+type Config struct {
+	Address        addr.NetAddress
+	ReportInterval time.Duration
+	PollInterval   time.Duration
 }
 
 func collect(ctx context.Context, q *queue, interval time.Duration) {
@@ -31,13 +40,13 @@ func collect(ctx context.Context, q *queue, interval time.Duration) {
 	}
 }
 
-func send(ctx context.Context, q *queue, addr string, interval time.Duration) {
+func send(ctx context.Context, q *queue, address addr.NetAddress, interval time.Duration) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			q.sendMetrics(addr)
+			q.sendMetrics(address.StringWithProto())
 			time.Sleep(interval)
 		}
 	}
