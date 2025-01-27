@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+const (
+	defaultHost = "localhost"
+	defaultPort = 8080
+)
+
 type NetAddress struct {
 	Host string
 	Port int
@@ -20,26 +25,24 @@ func (n *NetAddress) StringWithProto() string {
 	return fmt.Sprintf("https://%s:%d", n.Host, n.Port)
 }
 
-func (n *NetAddress) Set(flagValue string) error {
-	s := strings.Split(flagValue, ":")
-	if len(s) > 2 {
+func (n *NetAddress) Set(s string) error {
+	n.Host, n.Port = defaultHost, defaultPort
+
+	ss := strings.Split(s, ":")
+	if len(ss) > 2 {
 		return fmt.Errorf("failed to parse network address")
 	}
 
-	if len(s) < 2 {
-		n.Port = 8080
-	} else {
-		var err error
-
-		n.Port, err = strconv.Atoi(s[1])
+	if len(ss) == 2 {
+		port, err := strconv.Atoi(ss[1])
 		if err != nil {
 			return fmt.Errorf("failed to parse port: %w", err)
 		}
+		n.Port = port
 	}
 
-	n.Host = s[0]
-	if n.Host == "" {
-		n.Host = "localhost"
+	if ss[0] != "" {
+		n.Host = ss[0]
 	}
 
 	return nil
