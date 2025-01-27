@@ -9,8 +9,9 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/nekr0z/muhame/internal/metrics"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/nekr0z/muhame/internal/metrics"
 )
 
 func TestValueHandleFunc(t *testing.T) {

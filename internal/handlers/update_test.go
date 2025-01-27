@@ -7,8 +7,9 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/nekr0z/muhame/internal/metrics"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/nekr0z/muhame/internal/metrics"
 )
 
 func TestUpdateHandleFunc(t *testing.T) {
@@ -21,37 +22,37 @@ func TestUpdateHandleFunc(t *testing.T) {
 		{
 			name:   "gauge",
 			method: "POST",
-			path:   "/update/gauge/test/1.1",
+			path:   "/gauge/test/1.1",
 			want:   http.StatusOK,
 		},
 		{
 			name:   "counter",
 			method: "POST",
-			path:   "/update/counter/test/11",
+			path:   "/counter/test/11",
 			want:   http.StatusOK,
 		},
 		{
 			name:   "wrong value",
 			method: "POST",
-			path:   "/update/counter/test/1.1",
+			path:   "/counter/test/1.1",
 			want:   http.StatusBadRequest,
 		},
 		{
 			name:   "wrong type",
 			method: "POST",
-			path:   "/update/hippopotamus/test/1.1",
+			path:   "/hippopotamus/test/1.1",
 			want:   http.StatusBadRequest,
 		},
 		{
 			name:   "wrong method",
 			method: "GET",
-			path:   "/update/gauge/test/1.1",
+			path:   "/gauge/test/1.1",
 			want:   http.StatusMethodNotAllowed,
 		},
 		{
 			name:   "no name",
 			method: "POST",
-			path:   "/update/gauge/",
+			path:   "/gauge/",
 			want:   http.StatusNotFound,
 		},
 	}
@@ -61,7 +62,7 @@ func TestUpdateHandleFunc(t *testing.T) {
 			req := httptest.NewRequest(tt.method, tt.path, nil)
 
 			r := chi.NewRouter()
-			r.Post("/update/{type}/{name}/{value}", UpdateHandleFunc(zeroMetricStorage{}))
+			r.Post("/{type}/{name}/{value}", UpdateHandleFunc(zeroMetricStorage{}))
 
 			w := httptest.NewRecorder()
 			r.ServeHTTP(w, req)
