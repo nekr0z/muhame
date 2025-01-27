@@ -12,23 +12,10 @@ import (
 // UpdateHandleFunc returns the handler for the /update/ endpoint.
 func UpdateHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var (
-			err error
-			m   metrics.Metric
-		)
-
 		value := chi.URLParam(r, "value")
+		t := chi.URLParam(r, "type")
 
-		switch chi.URLParam(r, "type") {
-		case "gauge":
-			m, err = metrics.ParseGauge(value)
-		case "counter":
-			m, err = metrics.ParseCounter(value)
-		default:
-			http.Error(w, "Bad request", http.StatusBadRequest)
-			return
-		}
-
+		m, err := metrics.Parse(t, value)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Bad request: %s", err), http.StatusBadRequest)
 			return

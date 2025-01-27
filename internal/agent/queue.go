@@ -56,13 +56,7 @@ func (q *queue) sendMetrics(addr string) {
 }
 
 func sendMetric(m queuedMetric, addr string) {
-	metricType := "counter"
-
-	if _, ok := m.val.(metrics.Gauge); ok {
-		metricType = "gauge"
-	}
-
-	ep := endpoint(addr, metricType, m.name, m.val.String())
+	ep := endpoint(addr, m.val.Type(), m.name, m.val.String())
 
 	resp, err := http.Post(ep, "text/plain", nil)
 	if err != nil {
@@ -75,12 +69,8 @@ func sendMetric(m queuedMetric, addr string) {
 
 type queuedMetric struct {
 	name string
-	val  metricValue
+	val  metrics.Metric
 	next *queuedMetric
-}
-
-type metricValue interface {
-	String() string
 }
 
 func endpoint(addr string, metricType string, name string, value string) string {

@@ -12,18 +12,30 @@ type Metric interface {
 	Type() string
 }
 
+// Parse returns Metric of correct type t and value v.
+func Parse(t, v string) (Metric, error) {
+	switch t {
+	case Gauge(0).Type():
+		res, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return nil, fmt.Errorf("cannot parse gauge value: %w", err)
+		}
+		return Gauge(res), nil
+	case Counter(0).Type():
+		res, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("cannot parse counter value: %w", err)
+		}
+		return Counter(res), nil
+	default:
+		return nil, fmt.Errorf("unknown metric type %s", t)
+	}
+}
+
 // Gauge represents a gauge metric.
 type Gauge float64
 
 var _ Metric = Gauge(0)
-
-func ParseGauge(s string) (Gauge, error) {
-	v, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		return 0, fmt.Errorf("cannot parse gauge value: %w", err)
-	}
-	return Gauge(v), nil
-}
 
 func (g Gauge) String() string {
 	return fmt.Sprintf("%g", g)
@@ -45,14 +57,6 @@ func (g Gauge) Type() string {
 type Counter int64
 
 var _ Metric = Counter(0)
-
-func ParseCounter(s string) (Counter, error) {
-	v, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("cannot parse counter value: %w", err)
-	}
-	return Counter(v), nil
-}
 
 func (c Counter) String() string {
 	return fmt.Sprintf("%d", c)
