@@ -10,33 +10,11 @@ import (
 // RootHandleFunc returns the handler for the / endpoint.
 func RootHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		names, mm, err := st.List()
+		mm, err := listAllMetrics(st)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
 			return
 		}
-
-		type m struct {
-			name  string
-			t     string
-			value string
-		}
-
-		mms := make([]m, 0, len(names))
-		for i, name := range names {
-			mms = append(mms, m{
-				name:  name,
-				t:     mm[i].Type(),
-				value: mm[i].String(),
-			})
-		}
-
-		slices.SortFunc(mms, func(a, b m) int {
-			if a.t != b.t {
-				return -cmp.Compare(a.t, b.t)
-			}
-			return cmp.Compare(a.name, b.name)
-		})
 
 		_, err = fmt.Fprint(w, begin)
 		if err != nil {
@@ -44,7 +22,7 @@ func RootHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Request) 
 			return
 		}
 
-		for _, met := range mms {
+		for _, met := range mm {
 			link := fmt.Sprintf("/value/%s/%s", met.t, met.name)
 			_, err = fmt.Fprintf(w, "<li><a href=\"%s\">%s (%s)</a>: %s</li>\n", link, met.name, met.t, met.value)
 			if err != nil {
@@ -59,6 +37,38 @@ func RootHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Request) 
 			return
 		}
 	}
+}
+
+type displayedMetric struct {
+	name  string
+	t     string
+	value string
+}
+
+func listAllMetrics(st MetricsStorage) ([]displayedMetric, error) {
+	names, mm, err := st.List()
+	if err != nil {
+		return nil, err
+	}
+
+	mms := make([]displayedMetric, 0, len(names))
+	for i, name := range names {
+		mms = append(mms, displayedMetric{
+			name:  name,
+			t:     mm[i].Type(),
+			value: mm[i].String(),
+		})
+	}
+
+	slices.SortFunc(mms, func(a, b displayedMetric) int {
+		if a.t != b.t {
+			// gauges before counters
+			return -cmp.Compare(a.t, b.t)
+		}
+		return cmp.Compare(a.name, b.name)
+	})
+
+	return mms, nil
 }
 
 const (
