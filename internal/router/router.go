@@ -6,10 +6,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nekr0z/muhame/internal/handlers"
+	"go.uber.org/zap"
 )
 
-func New(st handlers.MetricsStorage) http.Handler {
+func New(log *zap.Logger, st handlers.MetricsStorage) http.Handler {
 	r := chi.NewRouter()
+
+	r.Use(logger(log))
 
 	r.Post("/update/{type}/{name}/{value}", handlers.UpdateHandleFunc(st))
 	r.Get("/value/{type}/{name}", handlers.ValueHandleFunc(st))

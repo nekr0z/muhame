@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/nekr0z/muhame/internal/addr"
 	"github.com/nekr0z/muhame/internal/router"
 	"github.com/nekr0z/muhame/internal/storage"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -20,8 +22,15 @@ func main() {
 func run(addr addr.NetAddress) error {
 	st := storage.NewMemStorage()
 
-	r := router.New(st)
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		return fmt.Errorf("failed to build logger: %w", err)
+	}
 
-	log.Printf("running server on %s", addr.String())
+	sugar := *logger.Sugar()
+
+	r := router.New(logger, st)
+
+	sugar.Infof("running server on %s", addr.String())
 	return http.ListenAndServe(addr.String(), r)
 }
