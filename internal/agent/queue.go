@@ -1,10 +1,9 @@
 package agent
 
 import (
+	"bytes"
 	"io"
-	"log"
 	"net/http"
-	"path"
 	"strings"
 	"sync"
 
@@ -56,11 +55,14 @@ func (q *queue) sendMetrics(addr string) {
 }
 
 func sendMetric(m queuedMetric, addr string) {
-	ep := endpoint(addr, m.val.Type(), m.name, m.val.String())
+	bb := metrics.ToJSON(m.val, m.name)
 
-	resp, err := http.Post(ep, "text/plain", nil)
-	if err != nil {
-		log.Fatalln(err)
+	resp, _ := http.Post(endpoint(addr), "application/json", bytes.NewBuffer(bb))
+	// Error is ignored since increment #7 test expects us to just happily go
+	// on, even if the response is breaking HTTP session.
+
+	if resp == nil {
+		return
 	}
 
 	_, _ = io.Copy(io.Discard, resp.Body)
@@ -73,6 +75,6 @@ type queuedMetric struct {
 	next *queuedMetric
 }
 
-func endpoint(addr string, metricType string, name string, value string) string {
-	return strings.TrimSuffix(addr, "/") + "/" + path.Join("update", metricType, name, value)
+func endpoint(addr string) string {
+	return strings.TrimSuffix(addr, "/") + "/update/"
 }

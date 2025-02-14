@@ -8,7 +8,7 @@ import (
 
 type MetricsStorage interface {
 	Update(string, metrics.Metric) error
-	Get(string, string) (metrics.Metric, error)
+	Get(t, name string) (metrics.Metric, error)
 	List() ([]string, []metrics.Metric, error)
 }
 
