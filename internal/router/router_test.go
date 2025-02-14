@@ -181,6 +181,24 @@ func TestNew_JSONValue(t *testing.T) {
 	}
 }
 
+func TestNew_Root(t *testing.T) {
+	t.Parallel()
+
+	log := zap.NewNop()
+	st := &mockStorage{
+		t: t,
+	}
+
+	r := router.New(log, st)
+
+	req := httptest.NewRequest("GET", "/", nil)
+	res := httptest.NewRecorder()
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, 200, res.Code)
+	assert.Contains(t, res.Header().Values("Content-Type"), "text/html")
+}
+
 var _ handlers.MetricsStorage = &mockStorage{}
 
 type mockStorage struct {
@@ -189,14 +207,14 @@ type mockStorage struct {
 	m    metrics.Metric
 }
 
-func (m *mockStorage) Update(name string, metric metrics.Metric) error {
+func (m mockStorage) Update(name string, metric metrics.Metric) error {
 	m.t.Helper()
 	assert.Equal(m.t, m.name, name)
 	assert.Equal(m.t, m.m, metric)
 	return nil
 }
 
-func (m *mockStorage) Get(metricType, name string) (metrics.Metric, error) {
+func (m mockStorage) Get(metricType, name string) (metrics.Metric, error) {
 	m.t.Helper()
 
 	if name != m.name {
@@ -206,7 +224,7 @@ func (m *mockStorage) Get(metricType, name string) (metrics.Metric, error) {
 	return m.m, nil
 }
 
-func (m *mockStorage) List() ([]string, []metrics.Metric, error) {
+func (m mockStorage) List() ([]string, []metrics.Metric, error) {
 	m.t.Helper()
 	return nil, nil, nil
 }

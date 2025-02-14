@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"compress/gzip"
 	"io"
 	"net/http"
 	"strings"
@@ -57,7 +58,17 @@ func (q *queue) sendMetrics(addr string) {
 func sendMetric(m queuedMetric, addr string) {
 	bb := metrics.ToJSON(m.val, m.name)
 
-	resp, _ := http.Post(endpoint(addr), "application/json", bytes.NewBuffer(bb))
+	b := compress(bb)
+
+	req, err := http.NewRequest(http.MethodPost, endpoint(addr), &b)
+	if err != nil {
+		panic(err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Encoding", "gzip")
+
+	resp, _ := http.DefaultClient.Do(req)
 	// Error is ignored since increment #7 test expects us to just happily go
 	// on, even if the response is breaking HTTP session.
 
@@ -77,4 +88,18 @@ type queuedMetric struct {
 
 func endpoint(addr string) string {
 	return strings.TrimSuffix(addr, "/") + "/update/"
+}
+
+func compress(b []byte) bytes.Buffer {
+	var buf bytes.Buffer
+
+	w, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)
+	if err != nil {
+		panic(err)
+	}
+
+	_, _ = w.Write(b)
+	_ = w.Close()
+
+	return buf
 }

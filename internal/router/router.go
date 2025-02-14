@@ -13,6 +13,8 @@ func New(log *zap.Logger, st handlers.MetricsStorage) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(logger(log))
+	r.Use(acceptGzip)
+	r.Use(respondGzip)
 
 	r.Post("/update/{type}/{name}/{value}", handlers.UpdateHandleFunc(st))
 	r.Post("/update/", handlers.UpdateJSONHandleFunc(st))
@@ -22,3 +24,5 @@ func New(log *zap.Logger, st handlers.MetricsStorage) http.Handler {
 
 	return r
 }
+
+type middleware func(http.Handler) http.Handler

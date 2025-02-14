@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"compress/gzip"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -41,9 +42,19 @@ func TestSendMetric(t *testing.T) {
 				assert.Equal(t, "/update/", r.URL.Path)
 				assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
-				b, err := io.ReadAll(r.Body)
+				b := r.Body
+				defer b.Close()
+
+				if r.Header.Get("Content-Encoding") == "gzip" {
+					var err error
+					b, err = gzip.NewReader(b)
+					assert.NoError(t, err)
+				}
+
+				bb, err := io.ReadAll(b)
 				assert.NoError(t, err)
-				assert.JSONEq(t, tt.want, string(b))
+
+				assert.JSONEq(t, tt.want, string(bb))
 			}))
 			defer srv.Close()
 

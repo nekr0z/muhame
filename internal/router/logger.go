@@ -7,8 +7,6 @@ import (
 	"go.uber.org/zap"
 )
 
-type middleware func(http.Handler) http.Handler
-
 func logger(log *zap.Logger) middleware {
 	sugar := *log.Sugar()
 

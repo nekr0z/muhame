@@ -16,6 +16,8 @@ func RootHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Request) 
 			return
 		}
 
+		w.Header().Set("Content-Type", "text/html")
+
 		_, err = fmt.Fprint(w, begin)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
@@ -36,6 +38,7 @@ func RootHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Request) 
 			http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
 			return
 		}
+
 	}
 }
 
