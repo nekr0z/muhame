@@ -53,3 +53,18 @@ func ToJSON(m Metric, name string) []byte {
 
 	return b
 }
+
+func FromJSON(b []byte) (string, Metric, error) {
+	var jm JSONMetric
+	err := json.Unmarshal(b, &jm)
+	if err != nil {
+		return "", nil, err
+	}
+
+	m, err := jm.Metric()
+	if err != nil {
+		return "", nil, err
+	}
+
+	return jm.ID, m, nil
+}
