@@ -42,21 +42,7 @@ func ValueJSONHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Requ
 		m, err := st.Get(t, name)
 		if err != nil {
 			if err == ErrMetricNotFound {
-				bb, err := json.Marshal(jm)
-				if err != nil {
-					http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
-					return
-				}
-
-				w.WriteHeader(http.StatusNotFound)
-
-				_, err = w.Write(bb)
-				if err != nil {
-					http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
-					return
-				}
-
-				w.Header().Add("Content-Type", "application/json")
+				respondJSONNotFound(w, t, name)
 				return
 			}
 
@@ -72,4 +58,27 @@ func ValueJSONHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Requ
 			return
 		}
 	}
+}
+
+func respondJSONNotFound(w http.ResponseWriter, t, name string) {
+	bb, err := json.Marshal(
+		metrics.JSONMetric{
+			ID:    name,
+			MType: t,
+		},
+	)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNotFound)
+
+	_, err = w.Write(bb)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
 }

@@ -58,7 +58,7 @@ func TestSendMetric(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			sendMetric(tt.m, srv.URL)
+			sendMetric(http.DefaultClient, tt.m, srv.URL)
 		})
 	}
 }

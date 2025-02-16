@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"flag"
@@ -9,7 +9,7 @@ import (
 	"github.com/nekr0z/muhame/internal/addr"
 )
 
-func parseFlags() config {
+func configure() config {
 	cfg := config{
 		address: addr.NetAddress{
 			Host: "localhost",

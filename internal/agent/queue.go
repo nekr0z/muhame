@@ -49,13 +49,13 @@ func (q *queue) pop() *queuedMetric {
 	return m
 }
 
-func (q *queue) sendMetrics(addr string) {
+func (q *queue) sendMetrics(c *http.Client, addr string) {
 	for m := q.pop(); m != nil; m = q.pop() {
-		sendMetric(*m, addr)
+		sendMetric(c, *m, addr)
 	}
 }
 
-func sendMetric(m queuedMetric, addr string) {
+func sendMetric(c *http.Client, m queuedMetric, addr string) {
 	bb := metrics.ToJSON(m.val, m.name)
 
 	b := compress(bb)
@@ -68,7 +68,7 @@ func sendMetric(m queuedMetric, addr string) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
 
-	resp, _ := http.DefaultClient.Do(req)
+	resp, _ := c.Do(req)
 	// Error is ignored since increment #7 test expects us to just happily go
 	// on, even if the response is breaking HTTP session.
 
