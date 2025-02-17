@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	err := server.ConfugureAndRun()
+	err := server.Run()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+
+	"github.com/nekr0z/muhame/internal/storage"
 )
 
 // RootHandleFunc returns the handler for the / endpoint.
-func RootHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Request) {
+func RootHandleFunc(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		mm, err := listAllMetrics(st)
 		if err != nil {
@@ -48,7 +50,7 @@ type displayedMetric struct {
 	value string
 }
 
-func listAllMetrics(st MetricsStorage) ([]displayedMetric, error) {
+func listAllMetrics(st storage.Storage) ([]displayedMetric, error) {
 	names, mm, err := st.List()
 	if err != nil {
 		return nil, err

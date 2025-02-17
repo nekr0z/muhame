@@ -2,19 +2,21 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nekr0z/muhame/internal/metrics"
+	"github.com/nekr0z/muhame/internal/storage"
 )
 
 // ValueHandleFunc returns the handler for the /value/ endpoint.
-func ValueHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Request) {
+func ValueHandleFunc(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m, err := st.Get(chi.URLParam(r, "type"), chi.URLParam(r, "name"))
 		if err != nil {
-			if err == ErrMetricNotFound {
+			if errors.Is(err, storage.ErrMetricNotFound) {
 				http.Error(w, "Metric not found.", http.StatusNotFound)
 				return
 			}
@@ -26,7 +28,7 @@ func ValueHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Request)
 	}
 }
 
-func ValueJSONHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Request) {
+func ValueJSONHandleFunc(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 
@@ -41,7 +43,7 @@ func ValueJSONHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Requ
 
 		m, err := st.Get(t, name)
 		if err != nil {
-			if err == ErrMetricNotFound {
+			if errors.Is(err, storage.ErrMetricNotFound) {
 				respondJSONNotFound(w, t, name)
 				return
 			}

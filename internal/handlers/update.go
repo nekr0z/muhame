@@ -9,10 +9,11 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/nekr0z/muhame/internal/metrics"
+	"github.com/nekr0z/muhame/internal/storage"
 )
 
 // UpdateHandleFunc returns the handler for the /update/ endpoint.
-func UpdateHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Request) {
+func UpdateHandleFunc(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		value := chi.URLParam(r, "value")
 		t := chi.URLParam(r, "type")
@@ -30,7 +31,7 @@ func UpdateHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Request
 	}
 }
 
-func UpdateJSONHandleFunc(st MetricsStorage) func(http.ResponseWriter, *http.Request) {
+func UpdateJSONHandleFunc(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 

@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/nekr0z/muhame/internal/handlers"
 	"github.com/nekr0z/muhame/internal/metrics"
 	"go.uber.org/zap"
 )
@@ -17,11 +16,11 @@ type Config struct {
 	Restore  bool
 }
 
-var _ handlers.MetricsStorage = &FileStorage{}
+var _ PersistentStorage = &FileStorage{}
 
 type FileStorage struct {
 	c                  Config
-	s                  handlers.MetricsStorage
+	s                  Storage
 	stopChan, doneChan chan struct{}
 }
 
@@ -85,9 +84,9 @@ func (fs *FileStorage) Get(t, name string) (metrics.Metric, error) {
 	return fs.s.Get(t, name)
 }
 
-// Stop breaks the flushing loop and blocks until metrics are saved to file (or
+// Flush breaks the flushing loop and blocks until metrics are saved to file (or
 // failed to do that).
-func (fs *FileStorage) Stop() {
+func (fs *FileStorage) Flush() {
 	close(fs.stopChan)
 	<-fs.doneChan
 }

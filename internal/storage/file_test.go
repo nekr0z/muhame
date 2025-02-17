@@ -36,7 +36,7 @@ func TestStopAndLoad(t *testing.T) {
 	err = st.Update(metName, met)
 	assert.NoError(t, err)
 
-	st.Stop()
+	st.Flush()
 
 	newSt := NewFileStorage(log, cfg)
 	require.NoError(t, err)

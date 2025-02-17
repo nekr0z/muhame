@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nekr0z/muhame/internal/handlers"
 	"github.com/nekr0z/muhame/internal/metrics"
 	"github.com/nekr0z/muhame/internal/router"
+	"github.com/nekr0z/muhame/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
@@ -199,7 +199,7 @@ func TestNew_Root(t *testing.T) {
 	assert.Contains(t, res.Header().Values("Content-Type"), "text/html")
 }
 
-var _ handlers.MetricsStorage = &mockStorage{}
+var _ storage.Storage = &mockStorage{}
 
 type mockStorage struct {
 	t    *testing.T
@@ -218,7 +218,7 @@ func (m mockStorage) Get(metricType, name string) (metrics.Metric, error) {
 	m.t.Helper()
 
 	if name != m.name {
-		return nil, handlers.ErrMetricNotFound
+		return nil, storage.ErrMetricNotFound
 	}
 
 	return m.m, nil

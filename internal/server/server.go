@@ -16,8 +16,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func ConfugureAndRun() error {
-	cfg := configure()
+func Run() error {
+	cfg := newConfig()
 	return run(cfg)
 }
 
@@ -64,7 +64,7 @@ func run(cfg config) error {
 		sugar.Fatalf("HTTP shutdown error: %s", err)
 	}
 
-	st.Stop()
+	st.Flush()
 
 	sugar.Info("Shutdown complete.")
 

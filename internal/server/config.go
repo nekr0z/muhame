@@ -9,7 +9,7 @@ import (
 	"github.com/nekr0z/muhame/internal/addr"
 )
 
-func configure() config {
+func newConfig() config {
 	cfg := config{
 		address: addr.NetAddress{
 			Host: "localhost",
