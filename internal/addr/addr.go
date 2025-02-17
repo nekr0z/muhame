@@ -47,3 +47,7 @@ func (n *NetAddress) Set(s string) error {
 
 	return nil
 }
+
+func (n *NetAddress) UnmarshalText(text []byte) error {
+	return n.Set(string(text))
+}

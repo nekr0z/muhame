@@ -2,54 +2,46 @@ package server
 
 import (
 	"flag"
-	"os"
-	"strconv"
 	"time"
 
+	"github.com/caarlos0/env/v11"
 	"github.com/nekr0z/muhame/internal/addr"
+	"github.com/nekr0z/muhame/internal/storage"
 )
 
+type envConfig struct {
+	Address       addr.NetAddress `env:"ADDRESS"`
+	StoreInterval int             `env:"STORE_INTERVAL"`
+	Filename      string          `env:"FILE_STORAGE_PATH"`
+	Restore       bool            `env:"RESTORE"`
+}
+
 func newConfig() config {
-	cfg := config{
-		address: addr.NetAddress{
+	cfg := envConfig{
+		Address: addr.NetAddress{
 			Host: "localhost",
 			Port: 8080,
 		},
 	}
 
-	flag.Var(&cfg.address, "a", "host:port to listen on")
-	flagStoreInterval := flag.Int("i", 300, "seconds between saving metrics to disk, 0 makes saving synchronous")
-	flag.StringVar(&cfg.st.Filename, "f", "metrics.sav", "file to store metrics in")
-	flag.BoolVar(&cfg.st.Restore, "r", true, "restore metrics from file on start")
+	flag.Var(&cfg.Address, "a", "host:port to listen on")
+	flag.IntVar(&cfg.StoreInterval, "i", 300, "seconds between saving metrics to disk, 0 makes saving synchronous")
+	flag.StringVar(&cfg.Filename, "f", "metrics.sav", "file to store metrics in")
+	flag.BoolVar(&cfg.Restore, "r", true, "restore metrics from file on start")
 
 	flag.Parse()
 
-	if env, ok := os.LookupEnv("ADDRESS"); ok {
-		var envAddress addr.NetAddress
-		err := envAddress.Set(env)
-		if err == nil {
-			cfg.address = envAddress
-		}
+	err := env.Parse(&cfg)
+	if err != nil {
+		panic(err)
 	}
 
-	if env, ok := os.LookupEnv("STORE_INTERVAL"); ok {
-		envStoreInterval, err := strconv.Atoi(env)
-		if err != nil {
-			flagStoreInterval = &envStoreInterval
-		}
+	return config{
+		address: cfg.Address,
+		st: storage.Config{
+			Interval: time.Duration(cfg.StoreInterval) * time.Second,
+			Filename: cfg.Filename,
+			Restore:  cfg.Restore,
+		},
 	}
-	cfg.st.Interval = time.Duration(*flagStoreInterval) * time.Second
-
-	if env, ok := os.LookupEnv("FILE_STORAGE_PATH"); ok {
-		cfg.st.Filename = env
-	}
-
-	if env, ok := os.LookupEnv("RESTORE"); ok {
-		envRestore, err := strconv.ParseBool(env)
-		if err != nil {
-			cfg.st.Restore = envRestore
-		}
-	}
-
-	return cfg
 }
