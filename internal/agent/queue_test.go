@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"compress/gzip"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,39 +11,6 @@ import (
 
 	"github.com/nekr0z/muhame/internal/metrics"
 )
-
-func TestEndpoint(t *testing.T) {
-	type args struct {
-		addr       string
-		metricType string
-		name       string
-		value      string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "basic",
-			args: args{"http://localhost:8080", "counter", "test", "1"},
-			want: "http://localhost:8080/update/counter/test/1",
-		},
-		{
-			name: "trailing slash",
-			args: args{"http://localhost:8080/", "gauge", "test", "1.1"},
-			want: "http://localhost:8080/update/gauge/test/1.1",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := endpoint(tt.args.addr, tt.args.metricType, tt.args.name, tt.args.value); got != tt.want {
-				assert.Equal(t, got, tt.want)
-			}
-		})
-	}
-}
 
 func TestSendMetric(t *testing.T) {
 	tests := []struct {
@@ -55,7 +24,7 @@ func TestSendMetric(t *testing.T) {
 				name: "test",
 				val:  metrics.Gauge(1.2),
 			},
-			want: "/update/gauge/test/1.2",
+			want: `{"id": "test", "type": "gauge", "value": 1.2}`,
 		},
 		{
 			name: "counter",
@@ -63,18 +32,33 @@ func TestSendMetric(t *testing.T) {
 				name: "another",
 				val:  metrics.Counter(2),
 			},
-			want: "/update/counter/another/2",
+			want: `{"id": "another", "type": "counter", "delta": 2}`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				assert.Equal(t, tt.want, r.URL.Path)
+				assert.Equal(t, "/update/", r.URL.Path)
+				assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+				b := r.Body
+				defer b.Close()
+
+				if r.Header.Get("Content-Encoding") == "gzip" {
+					var err error
+					b, err = gzip.NewReader(b)
+					assert.NoError(t, err)
+				}
+
+				bb, err := io.ReadAll(b)
+				assert.NoError(t, err)
+
+				assert.JSONEq(t, tt.want, string(bb))
 			}))
 			defer srv.Close()
 
-			sendMetric(tt.m, srv.URL)
+			sendMetric(http.DefaultClient, tt.m, srv.URL)
 		})
 	}
 }

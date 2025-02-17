@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/nekr0z/muhame/internal/metrics"
+	"github.com/nekr0z/muhame/internal/storage"
 )
 
 func TestValueHandleFunc(t *testing.T) {
@@ -80,7 +81,7 @@ func (oneMetricStorage) Get(t, n string) (metrics.Metric, error) {
 	if t == "counter" && n == "test" {
 		return metrics.Counter(11), nil
 	}
-	return nil, ErrMetricNotFound
+	return nil, storage.ErrMetricNotFound
 }
 
 func (oneMetricStorage) List() ([]string, []metrics.Metric, error) {

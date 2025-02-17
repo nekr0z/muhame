@@ -22,7 +22,7 @@ func (n *NetAddress) String() string {
 }
 
 func (n *NetAddress) StringWithProto() string {
-	return fmt.Sprintf("https://%s:%d", n.Host, n.Port)
+	return fmt.Sprintf("http://%s:%d", n.Host, n.Port)
 }
 
 func (n *NetAddress) Set(s string) error {
@@ -46,4 +46,8 @@ func (n *NetAddress) Set(s string) error {
 	}
 
 	return nil
+}
+
+func (n *NetAddress) UnmarshalText(text []byte) error {
+	return n.Set(string(text))
 }

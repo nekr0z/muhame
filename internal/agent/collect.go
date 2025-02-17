@@ -14,6 +14,7 @@ func collectMetrics(q *queue, counter int64) {
 	mm := map[string]metrics.Metric{
 		"Alloc":         metrics.Gauge(mem.Alloc),
 		"BuckHashSys":   metrics.Gauge(mem.BuckHashSys),
+		"Frees":         metrics.Gauge(mem.Frees),
 		"GCCPUFraction": metrics.Gauge(mem.GCCPUFraction),
 		"GCSys":         metrics.Gauge(mem.GCSys),
 		"HeapAlloc":     metrics.Gauge(mem.HeapAlloc),

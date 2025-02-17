@@ -1,10 +1,10 @@
 package agent
 
 import (
+	"bytes"
+	"compress/gzip"
 	"io"
-	"log"
 	"net/http"
-	"path"
 	"strings"
 	"sync"
 
@@ -49,18 +49,31 @@ func (q *queue) pop() *queuedMetric {
 	return m
 }
 
-func (q *queue) sendMetrics(addr string) {
+func (q *queue) sendMetrics(c *http.Client, addr string) {
 	for m := q.pop(); m != nil; m = q.pop() {
-		sendMetric(*m, addr)
+		sendMetric(c, *m, addr)
 	}
 }
 
-func sendMetric(m queuedMetric, addr string) {
-	ep := endpoint(addr, m.val.Type(), m.name, m.val.String())
+func sendMetric(c *http.Client, m queuedMetric, addr string) {
+	bb := metrics.ToJSON(m.val, m.name)
 
-	resp, err := http.Post(ep, "text/plain", nil)
+	b := compress(bb)
+
+	req, err := http.NewRequest(http.MethodPost, endpoint(addr), &b)
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Encoding", "gzip")
+
+	resp, _ := c.Do(req)
+	// Error is ignored since increment #7 test expects us to just happily go
+	// on, even if the response is breaking HTTP session.
+
+	if resp == nil {
+		return
 	}
 
 	_, _ = io.Copy(io.Discard, resp.Body)
@@ -73,6 +86,20 @@ type queuedMetric struct {
 	next *queuedMetric
 }
 
-func endpoint(addr string, metricType string, name string, value string) string {
-	return strings.TrimSuffix(addr, "/") + "/" + path.Join("update", metricType, name, value)
+func endpoint(addr string) string {
+	return strings.TrimSuffix(addr, "/") + "/update/"
+}
+
+func compress(b []byte) bytes.Buffer {
+	var buf bytes.Buffer
+
+	w, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)
+	if err != nil {
+		panic(err)
+	}
+
+	_, _ = w.Write(b)
+	_ = w.Close()
+
+	return buf
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/nekr0z/muhame/internal/addr"
+	"github.com/nekr0z/muhame/internal/httpclient"
 )
 
 // Run starts the agent to collect all metrics and send them to the server.
@@ -46,7 +47,7 @@ func send(ctx context.Context, q *queue, address addr.NetAddress, interval time.
 		case <-ctx.Done():
 			return
 		default:
-			q.sendMetrics(address.StringWithProto())
+			q.sendMetrics(httpclient.New(), address.StringWithProto())
 			time.Sleep(interval)
 		}
 	}

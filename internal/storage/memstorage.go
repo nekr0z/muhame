@@ -2,11 +2,10 @@
 package storage
 
 import (
-	"github.com/nekr0z/muhame/internal/handlers"
 	"github.com/nekr0z/muhame/internal/metrics"
 )
 
-var _ handlers.MetricsStorage = &MemStorage{}
+var _ Storage = &MemStorage{}
 
 type MemStorage struct {
 	mm map[string]map[string]metrics.Metric
@@ -40,12 +39,12 @@ func (s *MemStorage) Update(name string, m metrics.Metric) error {
 func (s *MemStorage) Get(t, name string) (metrics.Metric, error) {
 	mm, ok := s.mm[t]
 	if !ok {
-		return nil, handlers.ErrMetricNotFound
+		return nil, ErrMetricNotFound
 	}
 
 	m, ok := mm[name]
 	if !ok {
-		return nil, handlers.ErrMetricNotFound
+		return nil, ErrMetricNotFound
 	}
 
 	return m, nil
