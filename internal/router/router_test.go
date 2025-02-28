@@ -1,14 +1,21 @@
 package router_test
 
 import (
+	"context"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/nekr0z/muhame/internal/metrics"
 	"github.com/nekr0z/muhame/internal/router"
 	"github.com/nekr0z/muhame/internal/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/wait"
 	"go.uber.org/zap"
 )
 
@@ -199,6 +206,80 @@ func TestNew_Root(t *testing.T) {
 	assert.Contains(t, res.Header().Values("Content-Type"), "text/html")
 }
 
+func TestNew_Ping(t *testing.T) {
+	t.Parallel()
+
+	log := zap.NewNop()
+
+	ctx := context.Background()
+
+	dbName := "users"
+	dbUser := "user"
+	dbPassword := "password"
+
+	postgresContainer, err := postgres.Run(ctx,
+		"postgres:17",
+		postgres.WithDatabase(dbName),
+		postgres.WithUsername(dbUser),
+		postgres.WithPassword(dbPassword),
+		testcontainers.WithWaitStrategy(
+			wait.ForLog("database system is ready to accept connections").
+				WithOccurrence(2).
+				WithStartupTimeout(5*time.Second),
+			wait.ForListeningPort("5432/tcp")),
+	)
+
+	t.Cleanup(func() {
+		err := testcontainers.TerminateContainer(postgresContainer)
+		assert.NoError(t, err)
+	})
+
+	require.NoError(t, err)
+
+	connStr, err := postgresContainer.ConnectionString(ctx, "sslmode=disable")
+	require.NoError(t, err)
+
+	tests := []struct {
+		name string
+		dsn  string
+		want int
+	}{
+		{
+			name: "good db",
+			dsn:  connStr,
+			want: http.StatusOK,
+		},
+		{
+			name: "bad db",
+			dsn:  "postgres://",
+			want: http.StatusInternalServerError,
+		},
+		{
+			name: "no db",
+			dsn:  "",
+			want: http.StatusConflict,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			st, err := storage.New(log.Sugar(), storage.Config{
+				DatabaseDSN: tt.dsn,
+			})
+			require.NoError(t, err)
+
+			r := router.New(log, st)
+			req := httptest.NewRequest("GET", "/ping", nil)
+			res := httptest.NewRecorder()
+			r.ServeHTTP(res, req)
+
+			assert.Equal(t, tt.want, res.Code)
+		})
+	}
+}
+
 var _ storage.Storage = &mockStorage{}
 
 type mockStorage struct {
@@ -227,4 +308,13 @@ func (m mockStorage) Get(metricType, name string) (metrics.Metric, error) {
 func (m mockStorage) List() ([]string, []metrics.Metric, error) {
 	m.t.Helper()
 	return nil, nil, nil
+}
+
+func (m mockStorage) Ping(_ context.Context) error {
+	m.t.Helper()
+	return nil
+}
+
+func (m mockStorage) Close() {
+	m.t.Helper()
 }

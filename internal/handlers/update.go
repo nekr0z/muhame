@@ -13,7 +13,7 @@ import (
 )
 
 // UpdateHandleFunc returns the handler for the /update/ endpoint.
-func UpdateHandleFunc(st storage.Storage) func(http.ResponseWriter, *http.Request) {
+func UpdateHandleFunc(st updater) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		value := chi.URLParam(r, "value")
 		t := chi.URLParam(r, "type")
@@ -67,4 +67,8 @@ func UpdateJSONHandleFunc(st storage.Storage) func(http.ResponseWriter, *http.Re
 			http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
 		}
 	}
+}
+
+type updater interface {
+	Update(string, metrics.Metric) error
 }

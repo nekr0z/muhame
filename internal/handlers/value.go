@@ -12,7 +12,7 @@ import (
 )
 
 // ValueHandleFunc returns the handler for the /value/ endpoint.
-func ValueHandleFunc(st storage.Storage) func(http.ResponseWriter, *http.Request) {
+func ValueHandleFunc(st getter) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m, err := st.Get(chi.URLParam(r, "type"), chi.URLParam(r, "name"))
 		if err != nil {
@@ -83,4 +83,8 @@ func respondJSONNotFound(w http.ResponseWriter, t, name string) {
 	}
 
 	w.Header().Add("Content-Type", "application/json")
+}
+
+type getter interface {
+	Get(string, string) (metrics.Metric, error)
 }

@@ -2,7 +2,6 @@
 package handlers
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -69,10 +68,6 @@ func TestValueHandleFunc(t *testing.T) {
 }
 
 type oneMetricStorage struct{}
-
-func (z oneMetricStorage) Update(_ string, _ metrics.Metric) error {
-	return fmt.Errorf("not implemented")
-}
 
 func (oneMetricStorage) Get(t, n string) (metrics.Metric, error) {
 	if t == "gauge" && n == "test" {

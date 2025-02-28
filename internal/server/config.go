@@ -14,6 +14,7 @@ type envConfig struct {
 	StoreInterval int             `env:"STORE_INTERVAL"`
 	Filename      string          `env:"FILE_STORAGE_PATH"`
 	Restore       bool            `env:"RESTORE"`
+	DatabaseURL   string          `env:"DATABASE_DSN"`
 }
 
 func newConfig() config {
@@ -28,6 +29,7 @@ func newConfig() config {
 	flag.IntVar(&cfg.StoreInterval, "i", 300, "seconds between saving metrics to disk, 0 makes saving synchronous")
 	flag.StringVar(&cfg.Filename, "f", "metrics.sav", "file to store metrics in")
 	flag.BoolVar(&cfg.Restore, "r", true, "restore metrics from file on start")
+	flag.StringVar(&cfg.DatabaseURL, "d", "", "database URL")
 
 	flag.Parse()
 
@@ -39,9 +41,10 @@ func newConfig() config {
 	return config{
 		address: cfg.Address,
 		st: storage.Config{
-			Interval: time.Duration(cfg.StoreInterval) * time.Second,
-			Filename: cfg.Filename,
-			Restore:  cfg.Restore,
+			Interval:    time.Duration(cfg.StoreInterval) * time.Second,
+			Filename:    cfg.Filename,
+			Restore:     cfg.Restore,
+			DatabaseDSN: cfg.DatabaseURL,
 		},
 	}
 }

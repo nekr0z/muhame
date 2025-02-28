@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -11,12 +12,11 @@ import (
 )
 
 type Config struct {
-	Interval time.Duration
-	Filename string
-	Restore  bool
+	Interval    time.Duration
+	Filename    string
+	Restore     bool
+	DatabaseDSN string
 }
-
-var _ PersistentStorage = &FileStorage{}
 
 type FileStorage struct {
 	c                  Config
@@ -84,11 +84,16 @@ func (fs *FileStorage) Get(t, name string) (metrics.Metric, error) {
 	return fs.s.Get(t, name)
 }
 
-// Flush breaks the flushing loop and blocks until metrics are saved to file (or
+func (fs *FileStorage) Ping(ctx context.Context) error {
+	return fs.s.Ping(ctx)
+}
+
+// Close breaks the flushing loop and blocks until metrics are saved to file (or
 // failed to do that).
-func (fs *FileStorage) Flush() {
+func (fs *FileStorage) Close() {
 	close(fs.stopChan)
 	<-fs.doneChan
+	fs.s.Close()
 }
 
 func (fs *FileStorage) load(log *zap.SugaredLogger) {

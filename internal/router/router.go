@@ -21,6 +21,7 @@ func New(log *zap.Logger, st storage.Storage) http.Handler {
 	r.Post("/update/", handlers.UpdateJSONHandleFunc(st))
 	r.Post("/value/", handlers.ValueJSONHandleFunc(st))
 	r.Get("/value/{type}/{name}", handlers.ValueHandleFunc(st))
+	r.Get("/ping", handlers.PingHandleFunc(st))
 	r.Get("/", handlers.RootHandleFunc(st))
 
 	return r

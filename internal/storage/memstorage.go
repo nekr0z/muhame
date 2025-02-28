@@ -2,8 +2,13 @@
 package storage
 
 import (
+	"context"
+	"errors"
+
 	"github.com/nekr0z/muhame/internal/metrics"
 )
+
+var ErrNotADatabase = errors.New("not a database")
 
 var _ Storage = &MemStorage{}
 
@@ -62,4 +67,11 @@ func (s *MemStorage) List() ([]string, []metrics.Metric, error) {
 	}
 
 	return names, mms, nil
+}
+
+func (s *MemStorage) Ping(context.Context) error {
+	return ErrNotADatabase
+}
+
+func (s *MemStorage) Close() {
 }
