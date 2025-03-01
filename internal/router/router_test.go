@@ -213,7 +213,7 @@ func TestNew_Ping(t *testing.T) {
 
 	ctx := context.Background()
 
-	dbName := "users"
+	dbName := "metrics"
 	dbUser := "user"
 	dbPassword := "password"
 
@@ -240,9 +240,10 @@ func TestNew_Ping(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name string
-		dsn  string
-		want int
+		name  string
+		dsn   string
+		close bool
+		want  int
 	}{
 		{
 			name: "good db",
@@ -250,9 +251,10 @@ func TestNew_Ping(t *testing.T) {
 			want: http.StatusOK,
 		},
 		{
-			name: "bad db",
-			dsn:  "postgres://",
-			want: http.StatusInternalServerError,
+			name:  "closed db",
+			dsn:   connStr,
+			close: true,
+			want:  http.StatusInternalServerError,
 		},
 		{
 			name: "no db",
@@ -269,6 +271,12 @@ func TestNew_Ping(t *testing.T) {
 				DatabaseDSN: tt.dsn,
 			})
 			require.NoError(t, err)
+
+			if tt.close {
+				st.Close()
+			} else {
+				t.Cleanup(st.Close)
+			}
 
 			r := router.New(log, st)
 			req := httptest.NewRequest("GET", "/ping", nil)
@@ -288,14 +296,14 @@ type mockStorage struct {
 	m    metrics.Metric
 }
 
-func (m mockStorage) Update(name string, metric metrics.Metric) error {
+func (m mockStorage) Update(_ context.Context, name string, metric metrics.Metric) error {
 	m.t.Helper()
 	assert.Equal(m.t, m.name, name)
 	assert.Equal(m.t, m.m, metric)
 	return nil
 }
 
-func (m mockStorage) Get(metricType, name string) (metrics.Metric, error) {
+func (m mockStorage) Get(_ context.Context, metricType, name string) (metrics.Metric, error) {
 	m.t.Helper()
 
 	if name != m.name {
@@ -305,7 +313,7 @@ func (m mockStorage) Get(metricType, name string) (metrics.Metric, error) {
 	return m.m, nil
 }
 
-func (m mockStorage) List() ([]string, []metrics.Metric, error) {
+func (m mockStorage) List(_ context.Context) ([]string, []metrics.Metric, error) {
 	m.t.Helper()
 	return nil, nil, nil
 }

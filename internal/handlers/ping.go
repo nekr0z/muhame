@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/nekr0z/muhame/internal/storage"
@@ -9,16 +10,17 @@ import (
 func PingHandleFunc(st storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := st.Ping(r.Context())
-		switch err {
-		case storage.ErrNotADatabase:
-			http.Error(w, err.Error(), http.StatusConflict)
-			return
-		case nil:
+
+		if err == nil {
 			w.WriteHeader(http.StatusOK)
 			return
-		default:
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
+		if errors.Is(err, storage.ErrNotADatabase) {
+			http.Error(w, err.Error(), http.StatusConflict)
 			return
 		}
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

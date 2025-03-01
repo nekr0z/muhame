@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -69,7 +70,7 @@ func TestValueHandleFunc(t *testing.T) {
 
 type oneMetricStorage struct{}
 
-func (oneMetricStorage) Get(t, n string) (metrics.Metric, error) {
+func (oneMetricStorage) Get(_ context.Context, t, n string) (metrics.Metric, error) {
 	if t == "gauge" && n == "test" {
 		return metrics.Gauge(1.1), nil
 	}
@@ -77,15 +78,4 @@ func (oneMetricStorage) Get(t, n string) (metrics.Metric, error) {
 		return metrics.Counter(11), nil
 	}
 	return nil, storage.ErrMetricNotFound
-}
-
-func (oneMetricStorage) List() ([]string, []metrics.Metric, error) {
-	return []string{
-			"test",
-			"test",
-		},
-		[]metrics.Metric{
-			metrics.Gauge(1.1),
-			metrics.Counter(11),
-		}, nil
 }

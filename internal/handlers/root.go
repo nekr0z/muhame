@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"cmp"
+	"context"
 	"fmt"
 	"net/http"
 	"slices"
@@ -12,7 +13,7 @@ import (
 // RootHandleFunc returns the handler for the / endpoint.
 func RootHandleFunc(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		mm, err := listAllMetrics(st)
+		mm, err := listAllMetrics(r.Context(), st)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
 			return
@@ -50,8 +51,8 @@ type displayedMetric struct {
 	value string
 }
 
-func listAllMetrics(st storage.Storage) ([]displayedMetric, error) {
-	names, mm, err := st.List()
+func listAllMetrics(ctx context.Context, st storage.Storage) ([]displayedMetric, error) {
+	names, mm, err := st.List(ctx)
 	if err != nil {
 		return nil, err
 	}

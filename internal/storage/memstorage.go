@@ -10,19 +10,19 @@ import (
 
 var ErrNotADatabase = errors.New("not a database")
 
-var _ Storage = &MemStorage{}
+var _ Storage = &memStorage{}
 
-type MemStorage struct {
+type memStorage struct {
 	mm map[string]map[string]metrics.Metric
 }
 
-func NewMemStorage() *MemStorage {
-	return &MemStorage{
+func newMemStorage() *memStorage {
+	return &memStorage{
 		mm: make(map[string]map[string]metrics.Metric),
 	}
 }
 
-func (s *MemStorage) Update(name string, m metrics.Metric) error {
+func (s *memStorage) Update(_ context.Context, name string, m metrics.Metric) error {
 	t := m.Type()
 
 	if _, ok := s.mm[t]; !ok {
@@ -41,7 +41,7 @@ func (s *MemStorage) Update(name string, m metrics.Metric) error {
 	return err
 }
 
-func (s *MemStorage) Get(t, name string) (metrics.Metric, error) {
+func (s *memStorage) Get(_ context.Context, t, name string) (metrics.Metric, error) {
 	mm, ok := s.mm[t]
 	if !ok {
 		return nil, ErrMetricNotFound
@@ -55,7 +55,7 @@ func (s *MemStorage) Get(t, name string) (metrics.Metric, error) {
 	return m, nil
 }
 
-func (s *MemStorage) List() ([]string, []metrics.Metric, error) {
+func (s *memStorage) List(_ context.Context) ([]string, []metrics.Metric, error) {
 	var names []string
 	var mms []metrics.Metric
 
@@ -69,9 +69,9 @@ func (s *MemStorage) List() ([]string, []metrics.Metric, error) {
 	return names, mms, nil
 }
 
-func (s *MemStorage) Ping(context.Context) error {
+func (s *memStorage) Ping(context.Context) error {
 	return ErrNotADatabase
 }
 
-func (s *MemStorage) Close() {
+func (s *memStorage) Close() {
 }

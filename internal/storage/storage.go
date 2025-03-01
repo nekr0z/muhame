@@ -11,9 +11,9 @@ import (
 var ErrMetricNotFound = fmt.Errorf("metric not found")
 
 type Storage interface {
-	Get(t, name string) (metrics.Metric, error)
-	Update(string, metrics.Metric) error
-	List() ([]string, []metrics.Metric, error)
+	Get(ctx context.Context, t, name string) (metrics.Metric, error)
+	Update(context.Context, string, metrics.Metric) error
+	List(context.Context) ([]string, []metrics.Metric, error)
 	Ping(context.Context) error
 	Close()
 }
@@ -21,8 +21,8 @@ type Storage interface {
 func New(log *zap.SugaredLogger, cfg Config) (Storage, error) {
 	if cfg.DatabaseDSN != "" {
 		log.Info("using database for storage")
-		return NewDB(cfg.DatabaseDSN)
+		return newDB(cfg.DatabaseDSN)
 	}
 
-	return NewFileStorage(log, cfg), nil
+	return newFileStorage(context.TODO(), log, cfg), nil
 }

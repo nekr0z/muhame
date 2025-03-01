@@ -44,7 +44,7 @@ func run(cfg config) error {
 	go func() {
 		sugar.Infof("running server on %s", cfg.address.String())
 		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			sugar.Fatalf("HTTP service error: %s", err)
+			sugar.Errorf("HTTP service error: %s", err)
 		}
 		sugar.Info("HTTP service stopped")
 		serverChan <- struct{}{}
@@ -64,7 +64,7 @@ func run(cfg config) error {
 	defer shutdownRelease()
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		sugar.Fatalf("HTTP shutdown error: %s", err)
+		sugar.Errorf("HTTP shutdown error: %s", err)
 	}
 
 	st.Close()

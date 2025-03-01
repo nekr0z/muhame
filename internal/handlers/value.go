@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,7 +15,7 @@ import (
 // ValueHandleFunc returns the handler for the /value/ endpoint.
 func ValueHandleFunc(st getter) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		m, err := st.Get(chi.URLParam(r, "type"), chi.URLParam(r, "name"))
+		m, err := st.Get(r.Context(), chi.URLParam(r, "type"), chi.URLParam(r, "name"))
 		if err != nil {
 			if errors.Is(err, storage.ErrMetricNotFound) {
 				http.Error(w, "Metric not found.", http.StatusNotFound)
@@ -28,7 +29,7 @@ func ValueHandleFunc(st getter) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func ValueJSONHandleFunc(st storage.Storage) func(http.ResponseWriter, *http.Request) {
+func ValueJSONHandleFunc(st getter) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 
@@ -41,7 +42,7 @@ func ValueJSONHandleFunc(st storage.Storage) func(http.ResponseWriter, *http.Req
 		name := jm.ID
 		t := jm.MType
 
-		m, err := st.Get(t, name)
+		m, err := st.Get(r.Context(), t, name)
 		if err != nil {
 			if errors.Is(err, storage.ErrMetricNotFound) {
 				respondJSONNotFound(w, t, name)
@@ -86,5 +87,5 @@ func respondJSONNotFound(w http.ResponseWriter, t, name string) {
 }
 
 type getter interface {
-	Get(string, string) (metrics.Metric, error)
+	Get(context.Context, string, string) (metrics.Metric, error)
 }

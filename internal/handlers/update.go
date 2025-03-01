@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,7 +10,6 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/nekr0z/muhame/internal/metrics"
-	"github.com/nekr0z/muhame/internal/storage"
 )
 
 // UpdateHandleFunc returns the handler for the /update/ endpoint.
@@ -24,14 +24,14 @@ func UpdateHandleFunc(st updater) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		if err := st.Update(chi.URLParam(r, "name"), m); err != nil {
+		if err := st.Update(r.Context(), chi.URLParam(r, "name"), m); err != nil {
 			http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
 			return
 		}
 	}
 }
 
-func UpdateJSONHandleFunc(st storage.Storage) func(http.ResponseWriter, *http.Request) {
+func UpdateJSONHandleFunc(st getUpdater) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 
@@ -49,12 +49,12 @@ func UpdateJSONHandleFunc(st storage.Storage) func(http.ResponseWriter, *http.Re
 			return
 		}
 
-		if err := st.Update(name, m); err != nil {
+		if err := st.Update(r.Context(), name, m); err != nil {
 			http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
 			return
 		}
 
-		m, err = st.Get(m.Type(), name)
+		m, err = st.Get(r.Context(), m.Type(), name)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
 			return
@@ -70,5 +70,10 @@ func UpdateJSONHandleFunc(st storage.Storage) func(http.ResponseWriter, *http.Re
 }
 
 type updater interface {
-	Update(string, metrics.Metric) error
+	Update(context.Context, string, metrics.Metric) error
+}
+
+type getUpdater interface {
+	getter
+	updater
 }

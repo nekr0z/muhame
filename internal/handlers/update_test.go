@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -77,6 +78,6 @@ func TestUpdateHandleFunc(t *testing.T) {
 
 type zeroMetricStorage struct{}
 
-func (z zeroMetricStorage) Update(_ string, _ metrics.Metric) error {
+func (z zeroMetricStorage) Update(_ context.Context, _ string, _ metrics.Metric) error {
 	return nil
 }
