@@ -3,12 +3,9 @@ package storage
 
 import (
 	"context"
-	"errors"
 
 	"github.com/nekr0z/muhame/internal/metrics"
 )
-
-var ErrNotADatabase = errors.New("not a database")
 
 var _ Storage = &memStorage{}
 
@@ -22,21 +19,21 @@ func newMemStorage() *memStorage {
 	}
 }
 
-func (s *memStorage) Update(_ context.Context, name string, m metrics.Metric) error {
+func (s *memStorage) Update(_ context.Context, m metrics.Named) error {
 	t := m.Type()
 
 	if _, ok := s.mm[t]; !ok {
 		s.mm[t] = make(map[string]metrics.Metric)
 	}
 
-	have, ok := s.mm[t][name]
+	have, ok := s.mm[t][m.Name]
 	if !ok {
-		s.mm[t][name] = m
+		s.mm[t][m.Name] = m.Metric
 		return nil
 	}
 
 	var err error
-	s.mm[t][name], err = have.Update(m)
+	s.mm[t][m.Name], err = have.Update(m.Metric)
 
 	return err
 }
@@ -55,22 +52,17 @@ func (s *memStorage) Get(_ context.Context, t, name string) (metrics.Metric, err
 	return m, nil
 }
 
-func (s *memStorage) List(_ context.Context) ([]string, []metrics.Metric, error) {
-	var names []string
-	var mms []metrics.Metric
+func (s *memStorage) List(_ context.Context) ([]metrics.Named, error) {
+	var mms []metrics.Named
 
 	for _, mm := range s.mm {
 		for name, m := range mm {
-			names = append(names, name)
-			mms = append(mms, m)
+			named := metrics.Named{Name: name, Metric: m}
+			mms = append(mms, named)
 		}
 	}
 
-	return names, mms, nil
-}
-
-func (s *memStorage) Ping(context.Context) error {
-	return ErrNotADatabase
+	return mms, nil
 }
 
 func (s *memStorage) Close() {

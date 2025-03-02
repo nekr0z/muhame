@@ -61,8 +61,8 @@ func newFileStorage(ctx context.Context, log *zap.SugaredLogger, c Config) *file
 	return fs
 }
 
-func (fs *fileStorage) Update(ctx context.Context, name string, m metrics.Metric) error {
-	if err := fs.s.Update(ctx, name, m); err != nil {
+func (fs *fileStorage) Update(ctx context.Context, m metrics.Named) error {
+	if err := fs.s.Update(ctx, m); err != nil {
 		return err
 	}
 
@@ -76,16 +76,12 @@ func (fs *fileStorage) Update(ctx context.Context, name string, m metrics.Metric
 	return nil
 }
 
-func (fs *fileStorage) List(ctx context.Context) ([]string, []metrics.Metric, error) {
+func (fs *fileStorage) List(ctx context.Context) ([]metrics.Named, error) {
 	return fs.s.List(ctx)
 }
 
 func (fs *fileStorage) Get(ctx context.Context, t, name string) (metrics.Metric, error) {
 	return fs.s.Get(ctx, t, name)
-}
-
-func (fs *fileStorage) Ping(ctx context.Context) error {
-	return fs.s.Ping(ctx)
 }
 
 // Close breaks the flushing loop and blocks until metrics are saved to file (or
@@ -113,12 +109,12 @@ func (fs *fileStorage) restore(ctx context.Context) error {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		jm := scanner.Bytes()
-		name, m, err := metrics.FromJSON(jm)
+		named, err := metrics.FromJSON(jm)
 		if err != nil {
 			return fmt.Errorf("failed to parse json: %w", err)
 		}
 
-		err = fs.s.Update(ctx, name, m)
+		err = fs.s.Update(ctx, named)
 		if err != nil {
 			return fmt.Errorf("failed to update metric: %w", err)
 		}
@@ -144,13 +140,13 @@ func (fs *fileStorage) flush(ctx context.Context) error {
 	w := bufio.NewWriter(f)
 	defer w.Flush()
 
-	names, ms, err := fs.s.List(ctx)
+	nameds, err := fs.s.List(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list metrics: %w", err)
 	}
 
-	for i, name := range names {
-		jm := metrics.ToJSON(ms[i], name)
+	for _, named := range nameds {
+		jm := metrics.ToJSON(named.Metric, named.Name)
 
 		if err := writeLine(w, jm); err != nil {
 			return fmt.Errorf("failed to write to file: %w", err)

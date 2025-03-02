@@ -24,7 +24,10 @@ func UpdateHandleFunc(st updater) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		if err := st.Update(r.Context(), chi.URLParam(r, "name"), m); err != nil {
+		if err := st.Update(r.Context(), metrics.Named{
+			Name:   chi.URLParam(r, "name"),
+			Metric: m,
+		}); err != nil {
 			http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
 			return
 		}
@@ -43,18 +46,18 @@ func UpdateJSONHandleFunc(st getUpdater) func(http.ResponseWriter, *http.Request
 
 		name := jm.ID
 
-		m, err := jm.Metric()
+		nm, err := jm.Named()
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Bad request: %s", err), http.StatusBadRequest)
 			return
 		}
 
-		if err := st.Update(r.Context(), name, m); err != nil {
+		if err := st.Update(r.Context(), nm); err != nil {
 			http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
 			return
 		}
 
-		m, err = st.Get(r.Context(), m.Type(), name)
+		m, err := st.Get(r.Context(), nm.Type(), nm.Name)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
 			return
@@ -70,7 +73,7 @@ func UpdateJSONHandleFunc(st getUpdater) func(http.ResponseWriter, *http.Request
 }
 
 type updater interface {
-	Update(context.Context, string, metrics.Metric) error
+	Update(context.Context, metrics.Named) error
 }
 
 type getUpdater interface {

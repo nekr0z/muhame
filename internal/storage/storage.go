@@ -12,9 +12,8 @@ var ErrMetricNotFound = fmt.Errorf("metric not found")
 
 type Storage interface {
 	Get(ctx context.Context, t, name string) (metrics.Metric, error)
-	Update(context.Context, string, metrics.Metric) error
-	List(context.Context) ([]string, []metrics.Metric, error)
-	Ping(context.Context) error
+	Update(context.Context, metrics.Named) error
+	List(context.Context) ([]metrics.Named, error)
 	Close()
 }
 

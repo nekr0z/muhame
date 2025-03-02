@@ -19,6 +19,11 @@ const (
 	gaugesTable   = "gauges"
 )
 
+var (
+	gaugeInsert   = fmt.Sprintf("INSERT INTO %s(name, value) VALUES ($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value", gaugesTable)
+	counterInsert = fmt.Sprintf("INSERT INTO %s(name, value) VALUES ($1, $2) ON CONFLICT (name) DO UPDATE SET value = %s.value + EXCLUDED.value", countersTable, countersTable)
+)
+
 //go:embed migrations/*.sql
 var fs embed.FS
 
@@ -69,25 +74,60 @@ func (db *db) Get(ctx context.Context, t, name string) (metrics.Metric, error) {
 	}
 }
 
-func (db *db) Update(ctx context.Context, name string, metric metrics.Metric) error {
-	switch v := metric.(type) {
+func (db *db) Update(ctx context.Context, metric metrics.Named) error {
+	switch v := metric.Metric.(type) {
 	case metrics.Gauge:
-		return db.saveGauge(ctx, name, v)
+		return db.saveGauge(ctx, metric.Name, v)
 	case metrics.Counter:
-		return db.updateCounter(ctx, name, v)
+		return db.updateCounter(ctx, metric.Name, v)
 	default:
 		return fmt.Errorf("unknown metric type")
 	}
 }
 
-func (db *db) List(ctx context.Context) ([]string, []metrics.Metric, error) {
-	names := make([]string, 0)
-	values := make([]metrics.Metric, 0)
+func (db *db) List(ctx context.Context) ([]metrics.Named, error) {
+	values := make([]metrics.Named, 0)
 
-	names, values, err1 := db.appendCounters(ctx, names, values)
-	names, values, err2 := db.appendGauges(ctx, names, values)
+	values, err1 := db.appendCounters(ctx, values)
+	values, err2 := db.appendGauges(ctx, values)
 
-	return names, values, errors.Join(err1, err2)
+	return values, errors.Join(err1, err2)
+}
+
+func (db *db) BulkUpdate(ctx context.Context, mm []metrics.Named) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmtGauge, err := tx.PrepareContext(ctx, gaugeInsert)
+	if err != nil {
+		return err
+	}
+	defer stmtGauge.Close()
+
+	stmtCounter, err := tx.PrepareContext(ctx, counterInsert)
+	if err != nil {
+		return err
+	}
+	defer stmtCounter.Close()
+
+	for _, m := range mm {
+		switch v := m.Metric.(type) {
+		case metrics.Counter:
+			_, err = stmtCounter.ExecContext(ctx, m.Name, v)
+		case metrics.Gauge:
+			_, err = stmtGauge.ExecContext(ctx, m.Name, v)
+		default:
+			err = fmt.Errorf("unknown metric type")
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (db *db) getCounter(ctx context.Context, name string) (metrics.Counter, error) {
@@ -111,22 +151,20 @@ func (db *db) getGauge(ctx context.Context, name string) (metrics.Gauge, error) 
 }
 
 func (db *db) saveGauge(ctx context.Context, name string, gauge metrics.Gauge) error {
-	q := fmt.Sprintf("INSERT INTO %s(name, value) VALUES ($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value", gaugesTable)
-	_, err := db.ExecContext(ctx, q, name, gauge)
+	_, err := db.ExecContext(ctx, gaugeInsert, name, gauge)
 	return err
 }
 
 func (db *db) updateCounter(ctx context.Context, name string, counter metrics.Counter) error {
-	q := fmt.Sprintf("INSERT INTO %s(name, value) VALUES ($1, $2) ON CONFLICT (name) DO UPDATE SET value = %s.value + EXCLUDED.value", countersTable, countersTable)
-	_, err := db.ExecContext(ctx, q, name, counter)
+	_, err := db.ExecContext(ctx, counterInsert, name, counter)
 	return err
 }
 
-func (db *db) appendCounters(ctx context.Context, names []string, values []metrics.Metric) ([]string, []metrics.Metric, error) {
+func (db *db) appendCounters(ctx context.Context, values []metrics.Named) ([]metrics.Named, error) {
 	q := fmt.Sprintf("SELECT name, value FROM %s", countersTable)
 	rows, err := db.QueryContext(ctx, q)
 	if err != nil {
-		return names, values, err
+		return values, err
 	}
 	defer rows.Close()
 
@@ -138,21 +176,23 @@ func (db *db) appendCounters(ctx context.Context, names []string, values []metri
 	for rows.Next() {
 		err := rows.Scan(&n, &c)
 		if err != nil {
-			return names, values, err
+			return values, err
 		}
 
-		names = append(names, n)
-		values = append(values, c)
+		values = append(values, metrics.Named{
+			Name:   n,
+			Metric: c,
+		})
 	}
 
-	return names, values, rows.Err()
+	return values, rows.Err()
 }
 
-func (db *db) appendGauges(ctx context.Context, names []string, values []metrics.Metric) ([]string, []metrics.Metric, error) {
+func (db *db) appendGauges(ctx context.Context, values []metrics.Named) ([]metrics.Named, error) {
 	q := fmt.Sprintf("SELECT name, value FROM %s", gaugesTable)
 	rows, err := db.QueryContext(ctx, q)
 	if err != nil {
-		return names, values, err
+		return values, err
 	}
 	defer rows.Close()
 
@@ -164,14 +204,16 @@ func (db *db) appendGauges(ctx context.Context, names []string, values []metrics
 	for rows.Next() {
 		err := rows.Scan(&n, &g)
 		if err != nil {
-			return names, values, err
+			return values, err
 		}
 
-		names = append(names, n)
-		values = append(values, g)
+		values = append(values, metrics.Named{
+			Name:   n,
+			Metric: g,
+		})
 	}
 
-	return names, values, rows.Err()
+	return values, rows.Err()
 }
 
 func scanMetric[M metrics.Counter | metrics.Gauge](m *M, r *sql.Row) error {

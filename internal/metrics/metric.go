@@ -12,6 +12,11 @@ type Metric interface {
 	Type() string
 }
 
+type Named struct {
+	Name string
+	Metric
+}
+
 // Parse returns Metric of correct type t and value v.
 func Parse(t, v string) (Metric, error) {
 	switch t {

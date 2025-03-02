@@ -4,7 +4,6 @@ import (
 	"context"
 	"embed"
 	"errors"
-	"slices"
 	"testing"
 	"time"
 
@@ -125,7 +124,10 @@ func TestUpdate(t *testing.T) {
 				assert.NoError(t, err)
 			}
 
-			err = testStorage.Update(ctx, tt.mName, tt.mValue)
+			err = testStorage.Update(ctx, metrics.Named{
+				Name:   tt.mName,
+				Metric: tt.mValue,
+			})
 			assert.NoError(t, err)
 
 			got, err := testStorage.Get(ctx, tt.mValue.Type(), tt.mName)
@@ -141,14 +143,11 @@ func TestList(t *testing.T) {
 
 	ctx := context.Background()
 
-	names, values, err := testStorage.List(ctx)
+	ms, err := testStorage.List(ctx)
 	assert.NoError(t, err)
 
-	assert.Contains(t, names, testCounterName)
-	assert.Contains(t, names, testGaugeName)
-
-	assert.Equal(t, testCounterValue, values[slices.Index(names, testCounterName)])
-	assert.Equal(t, testGaugeValue, values[slices.Index(names, testGaugeName)])
+	assert.Contains(t, ms, metrics.Named{Name: testCounterName, Metric: testCounterValue})
+	assert.Contains(t, ms, metrics.Named{Name: testGaugeName, Metric: testGaugeValue})
 }
 
 func TestMain(m *testing.M) {

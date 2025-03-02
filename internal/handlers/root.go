@@ -52,17 +52,17 @@ type displayedMetric struct {
 }
 
 func listAllMetrics(ctx context.Context, st storage.Storage) ([]displayedMetric, error) {
-	names, mm, err := st.List(ctx)
+	mm, err := st.List(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	mms := make([]displayedMetric, 0, len(names))
-	for i, name := range names {
+	mms := make([]displayedMetric, 0, len(mm))
+	for _, named := range mm {
 		mms = append(mms, displayedMetric{
-			name:  name,
-			t:     mm[i].Type(),
-			value: mm[i].String(),
+			name:  named.Name,
+			t:     named.Type(),
+			value: named.String(),
 		})
 	}
 

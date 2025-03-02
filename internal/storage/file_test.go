@@ -37,7 +37,10 @@ func TestStopAndLoad(t *testing.T) {
 	metName := "test"
 	met := metrics.Counter(25)
 
-	err = st.Update(ctx, metName, met)
+	err = st.Update(ctx, metrics.Named{
+		Name:   metName,
+		Metric: met,
+	})
 	assert.NoError(t, err)
 
 	st.Close()
