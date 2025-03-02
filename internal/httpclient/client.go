@@ -2,11 +2,12 @@ package httpclient
 
 import (
 	"net/http"
-	"time"
+
+	"github.com/go-resty/resty/v2"
 )
 
 func New() *http.Client {
-	return &http.Client{
-		Timeout: time.Second * 30,
-	}
+	return resty.New().
+		SetRetryCount(3).
+		GetClient()
 }

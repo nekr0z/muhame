@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nekr0z/muhame/internal/metrics"
+	"github.com/nekr0z/muhame/internal/retry"
 	"go.uber.org/zap"
 )
 
@@ -100,7 +101,11 @@ func (fs *fileStorage) load(ctx context.Context, log *zap.SugaredLogger) {
 }
 
 func (fs *fileStorage) restore(ctx context.Context) error {
-	f, err := os.Open(fs.c.Filename)
+	f, err := retry.OnError(func() (*os.File, error) {
+		return os.Open(fs.c.Filename)
+	}, func(err error) bool {
+		return err != nil
+	})
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
@@ -131,7 +136,11 @@ func (fs *fileStorage) save(ctx context.Context, log *zap.SugaredLogger) {
 }
 
 func (fs *fileStorage) flush(ctx context.Context) error {
-	f, err := os.Create(fs.c.Filename)
+	f, err := retry.OnError(func() (*os.File, error) {
+		return os.Create(fs.c.Filename)
+	}, func(err error) bool {
+		return err != nil
+	})
 	if err != nil {
 		return fmt.Errorf("failed to create/truncate file: %w", err)
 	}

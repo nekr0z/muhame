@@ -108,6 +108,39 @@ func TestSendBulk(t *testing.T) {
 	q.sendMetrics(http.DefaultClient, srv.URL)
 }
 
+func TestSendBulk_Fallback(t *testing.T) {
+	mm := []queuedMetric{
+		{
+			name: "test",
+			val:  metrics.Gauge(1.2),
+		},
+		{
+			name: "another",
+			val:  metrics.Counter(2),
+		},
+	}
+
+	q := queue{}
+
+	for _, m := range mm {
+		q.push(m)
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/updates/" {
+			http.Error(w, "storage does not support bulk updates", http.StatusConflict)
+			return
+		}
+
+		assert.Equal(t, "/update/", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		assert.Equal(t, "gzip", r.Header.Get("Content-Encoding"))
+	}))
+	defer srv.Close()
+
+	q.sendMetrics(http.DefaultClient, srv.URL)
+}
+
 func TestSendBulk_EmptyQueue(t *testing.T) {
 	q := queue{}
 

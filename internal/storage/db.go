@@ -10,8 +10,11 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nekr0z/muhame/internal/metrics"
+	"github.com/nekr0z/muhame/internal/retry"
 )
 
 const (
@@ -95,19 +98,25 @@ func (db *db) List(ctx context.Context) ([]metrics.Named, error) {
 }
 
 func (db *db) BulkUpdate(ctx context.Context, mm []metrics.Named) error {
-	tx, err := db.BeginTx(ctx, nil)
+	tx, err := retry.OnError(func() (*sql.Tx, error) {
+		return db.BeginTx(ctx, nil)
+	}, isConnectionException)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	stmtGauge, err := tx.PrepareContext(ctx, gaugeInsert)
+	stmtGauge, err := retry.OnError(func() (*sql.Stmt, error) {
+		return tx.PrepareContext(ctx, gaugeInsert)
+	}, isConnectionException)
 	if err != nil {
 		return err
 	}
 	defer stmtGauge.Close()
 
-	stmtCounter, err := tx.PrepareContext(ctx, counterInsert)
+	stmtCounter, err := retry.OnError(func() (*sql.Stmt, error) {
+		return tx.PrepareContext(ctx, counterInsert)
+	}, isConnectionException)
 	if err != nil {
 		return err
 	}
@@ -127,7 +136,9 @@ func (db *db) BulkUpdate(ctx context.Context, mm []metrics.Named) error {
 		}
 	}
 
-	return tx.Commit()
+	return retry.Error(func() error {
+		return tx.Commit()
+	}, isConnectionException)
 }
 
 func (db *db) getCounter(ctx context.Context, name string) (metrics.Counter, error) {
@@ -151,18 +162,25 @@ func (db *db) getGauge(ctx context.Context, name string) (metrics.Gauge, error) 
 }
 
 func (db *db) saveGauge(ctx context.Context, name string, gauge metrics.Gauge) error {
-	_, err := db.ExecContext(ctx, gaugeInsert, name, gauge)
+	_, err := retry.OnError(func() (sql.Result, error) {
+		return db.ExecContext(ctx, gaugeInsert, name, gauge)
+	}, isConnectionException)
 	return err
 }
 
 func (db *db) updateCounter(ctx context.Context, name string, counter metrics.Counter) error {
-	_, err := db.ExecContext(ctx, counterInsert, name, counter)
+	_, err := retry.OnError(func() (sql.Result, error) {
+		return db.ExecContext(ctx, counterInsert, name, counter)
+	}, isConnectionException)
 	return err
 }
 
 func (db *db) appendCounters(ctx context.Context, values []metrics.Named) ([]metrics.Named, error) {
 	q := fmt.Sprintf("SELECT name, value FROM %s", countersTable)
-	rows, err := db.QueryContext(ctx, q)
+
+	rows, err := retry.OnError(func() (*sql.Rows, error) {
+		return db.QueryContext(ctx, q)
+	}, isConnectionException)
 	if err != nil {
 		return values, err
 	}
@@ -190,7 +208,10 @@ func (db *db) appendCounters(ctx context.Context, values []metrics.Named) ([]met
 
 func (db *db) appendGauges(ctx context.Context, values []metrics.Named) ([]metrics.Named, error) {
 	q := fmt.Sprintf("SELECT name, value FROM %s", gaugesTable)
-	rows, err := db.QueryContext(ctx, q)
+
+	rows, err := retry.OnError(func() (*sql.Rows, error) {
+		return db.QueryContext(ctx, q)
+	}, isConnectionException)
 	if err != nil {
 		return values, err
 	}
@@ -224,4 +245,12 @@ func scanMetric[M metrics.Counter | metrics.Gauge](m *M, r *sql.Row) error {
 	}
 
 	return err
+}
+
+func isConnectionException(err error) bool {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return false
+	}
+	return pgerrcode.IsConnectionException(pgErr.Code)
 }
