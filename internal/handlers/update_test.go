@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/nekr0z/muhame/internal/metrics"
-	"github.com/nekr0z/muhame/internal/storage"
 )
 
 func TestUpdateHandleFunc(t *testing.T) {
@@ -78,14 +78,6 @@ func TestUpdateHandleFunc(t *testing.T) {
 
 type zeroMetricStorage struct{}
 
-func (z zeroMetricStorage) Update(_ string, _ metrics.Metric) error {
+func (z zeroMetricStorage) Update(_ context.Context, _ metrics.Named) error {
 	return nil
-}
-
-func (zeroMetricStorage) Get(_, _ string) (metrics.Metric, error) {
-	return nil, storage.ErrMetricNotFound
-}
-
-func (zeroMetricStorage) List() ([]string, []metrics.Metric, error) {
-	return nil, nil, nil
 }

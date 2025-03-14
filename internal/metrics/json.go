@@ -29,6 +29,16 @@ func (j JSONMetric) Metric() (Metric, error) {
 	}
 }
 
+func (j JSONMetric) Named() (Named, error) {
+	n := Named{Name: j.ID}
+
+	var err error
+
+	n.Metric, err = j.Metric()
+
+	return n, err
+}
+
 func ToJSON(m Metric, name string) []byte {
 	var jm JSONMetric
 	jm.ID = name
@@ -54,17 +64,21 @@ func ToJSON(m Metric, name string) []byte {
 	return b
 }
 
-func FromJSON(b []byte) (string, Metric, error) {
+func FromJSON(b []byte) (Named, error) {
 	var jm JSONMetric
+	var n Named
+
 	err := json.Unmarshal(b, &jm)
 	if err != nil {
-		return "", nil, err
+		return n, err
 	}
 
-	m, err := jm.Metric()
+	n.Metric, err = jm.Metric()
 	if err != nil {
-		return "", nil, err
+		return n, err
 	}
 
-	return jm.ID, m, nil
+	n.Name = jm.ID
+
+	return n, nil
 }

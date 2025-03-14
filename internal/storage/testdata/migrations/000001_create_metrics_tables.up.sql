@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS counters(
+   name VARCHAR (50) PRIMARY KEY,
+   value BIGINT
+);
+CREATE TABLE IF NOT EXISTS gauges(
+   name VARCHAR (50) PRIMARY KEY,
+   value FLOAT
+);

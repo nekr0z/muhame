@@ -2,38 +2,39 @@ package storage
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/nekr0z/muhame/internal/metrics"
+	"github.com/nekr0z/muhame/internal/retry"
 	"go.uber.org/zap"
 )
 
 type Config struct {
-	Interval time.Duration
-	Filename string
-	Restore  bool
+	Interval    time.Duration
+	Filename    string
+	Restore     bool
+	DatabaseDSN string
 }
 
-var _ PersistentStorage = &FileStorage{}
-
-type FileStorage struct {
+type fileStorage struct {
 	c                  Config
 	s                  Storage
 	stopChan, doneChan chan struct{}
 }
 
-func NewFileStorage(log *zap.SugaredLogger, c Config) *FileStorage {
-	fs := &FileStorage{
+func newFileStorage(ctx context.Context, log *zap.SugaredLogger, c Config) *fileStorage {
+	fs := &fileStorage{
 		c:        c,
-		s:        NewMemStorage(),
+		s:        newMemStorage(),
 		stopChan: make(chan struct{}),
 		doneChan: make(chan struct{}),
 	}
 
 	if c.Restore {
-		fs.load(log)
+		fs.load(ctx, log)
 	}
 
 	go func() {
@@ -46,13 +47,13 @@ func NewFileStorage(log *zap.SugaredLogger, c Config) *FileStorage {
 		for {
 			select {
 			case <-fs.stopChan:
-				fs.save(log)
+				fs.save(ctx, log)
 				break loop
 			case <-time.After(interval):
 				if c.Interval == 0 {
 					continue
 				}
-				fs.save(log)
+				fs.save(ctx, log)
 			}
 		}
 		close(fs.doneChan)
@@ -61,13 +62,13 @@ func NewFileStorage(log *zap.SugaredLogger, c Config) *FileStorage {
 	return fs
 }
 
-func (fs *FileStorage) Update(name string, m metrics.Metric) error {
-	if err := fs.s.Update(name, m); err != nil {
+func (fs *fileStorage) Update(ctx context.Context, m metrics.Named) error {
+	if err := fs.s.Update(ctx, m); err != nil {
 		return err
 	}
 
 	if fs.c.Interval == 0 {
-		err := fs.flush()
+		err := fs.flush(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to save metrics to file: %w", err)
 		}
@@ -76,30 +77,35 @@ func (fs *FileStorage) Update(name string, m metrics.Metric) error {
 	return nil
 }
 
-func (fs *FileStorage) List() ([]string, []metrics.Metric, error) {
-	return fs.s.List()
+func (fs *fileStorage) List(ctx context.Context) ([]metrics.Named, error) {
+	return fs.s.List(ctx)
 }
 
-func (fs *FileStorage) Get(t, name string) (metrics.Metric, error) {
-	return fs.s.Get(t, name)
+func (fs *fileStorage) Get(ctx context.Context, t, name string) (metrics.Metric, error) {
+	return fs.s.Get(ctx, t, name)
 }
 
-// Flush breaks the flushing loop and blocks until metrics are saved to file (or
+// Close breaks the flushing loop and blocks until metrics are saved to file (or
 // failed to do that).
-func (fs *FileStorage) Flush() {
+func (fs *fileStorage) Close() {
 	close(fs.stopChan)
 	<-fs.doneChan
+	fs.s.Close()
 }
 
-func (fs *FileStorage) load(log *zap.SugaredLogger) {
+func (fs *fileStorage) load(ctx context.Context, log *zap.SugaredLogger) {
 	log.Infof("restoring from file %s", fs.c.Filename)
-	if err := fs.restore(); err != nil {
+	if err := fs.restore(ctx); err != nil {
 		log.Errorf("failed to restore metrics from file: %s", err)
 	}
 }
 
-func (fs *FileStorage) restore() error {
-	f, err := os.Open(fs.c.Filename)
+func (fs *fileStorage) restore(ctx context.Context) error {
+	f, err := retry.OnError(func() (*os.File, error) {
+		return os.Open(fs.c.Filename)
+	}, func(err error) bool {
+		return err != nil
+	})
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
@@ -108,12 +114,12 @@ func (fs *FileStorage) restore() error {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		jm := scanner.Bytes()
-		name, m, err := metrics.FromJSON(jm)
+		named, err := metrics.FromJSON(jm)
 		if err != nil {
 			return fmt.Errorf("failed to parse json: %w", err)
 		}
 
-		err = fs.s.Update(name, m)
+		err = fs.s.Update(ctx, named)
 		if err != nil {
 			return fmt.Errorf("failed to update metric: %w", err)
 		}
@@ -122,15 +128,19 @@ func (fs *FileStorage) restore() error {
 	return nil
 }
 
-func (fs *FileStorage) save(log *zap.SugaredLogger) {
-	if err := fs.flush(); err != nil {
+func (fs *fileStorage) save(ctx context.Context, log *zap.SugaredLogger) {
+	if err := fs.flush(ctx); err != nil {
 		log.Errorf("failed to save metrics to file: %s", err)
 	}
 	log.Infof("metrics saved to file")
 }
 
-func (fs *FileStorage) flush() error {
-	f, err := os.Create(fs.c.Filename)
+func (fs *fileStorage) flush(ctx context.Context) error {
+	f, err := retry.OnError(func() (*os.File, error) {
+		return os.Create(fs.c.Filename)
+	}, func(err error) bool {
+		return err != nil
+	})
 	if err != nil {
 		return fmt.Errorf("failed to create/truncate file: %w", err)
 	}
@@ -139,13 +149,13 @@ func (fs *FileStorage) flush() error {
 	w := bufio.NewWriter(f)
 	defer w.Flush()
 
-	names, ms, err := fs.s.List()
+	nameds, err := fs.s.List(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list metrics: %w", err)
 	}
 
-	for i, name := range names {
-		jm := metrics.ToJSON(ms[i], name)
+	for _, named := range nameds {
+		jm := metrics.ToJSON(named.Metric, named.Name)
 
 		if err := writeLine(w, jm); err != nil {
 			return fmt.Errorf("failed to write to file: %w", err)

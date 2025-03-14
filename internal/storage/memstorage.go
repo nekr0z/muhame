@@ -2,41 +2,43 @@
 package storage
 
 import (
+	"context"
+
 	"github.com/nekr0z/muhame/internal/metrics"
 )
 
-var _ Storage = &MemStorage{}
+var _ Storage = &memStorage{}
 
-type MemStorage struct {
+type memStorage struct {
 	mm map[string]map[string]metrics.Metric
 }
 
-func NewMemStorage() *MemStorage {
-	return &MemStorage{
+func newMemStorage() *memStorage {
+	return &memStorage{
 		mm: make(map[string]map[string]metrics.Metric),
 	}
 }
 
-func (s *MemStorage) Update(name string, m metrics.Metric) error {
+func (s *memStorage) Update(_ context.Context, m metrics.Named) error {
 	t := m.Type()
 
 	if _, ok := s.mm[t]; !ok {
 		s.mm[t] = make(map[string]metrics.Metric)
 	}
 
-	have, ok := s.mm[t][name]
+	have, ok := s.mm[t][m.Name]
 	if !ok {
-		s.mm[t][name] = m
+		s.mm[t][m.Name] = m.Metric
 		return nil
 	}
 
 	var err error
-	s.mm[t][name], err = have.Update(m)
+	s.mm[t][m.Name], err = have.Update(m.Metric)
 
 	return err
 }
 
-func (s *MemStorage) Get(t, name string) (metrics.Metric, error) {
+func (s *memStorage) Get(_ context.Context, t, name string) (metrics.Metric, error) {
 	mm, ok := s.mm[t]
 	if !ok {
 		return nil, ErrMetricNotFound
@@ -50,16 +52,18 @@ func (s *MemStorage) Get(t, name string) (metrics.Metric, error) {
 	return m, nil
 }
 
-func (s *MemStorage) List() ([]string, []metrics.Metric, error) {
-	var names []string
-	var mms []metrics.Metric
+func (s *memStorage) List(_ context.Context) ([]metrics.Named, error) {
+	var mms []metrics.Named
 
 	for _, mm := range s.mm {
 		for name, m := range mm {
-			names = append(names, name)
-			mms = append(mms, m)
+			named := metrics.Named{Name: name, Metric: m}
+			mms = append(mms, named)
 		}
 	}
 
-	return names, mms, nil
+	return mms, nil
+}
+
+func (s *memStorage) Close() {
 }

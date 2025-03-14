@@ -29,7 +29,10 @@ func run(cfg config) error {
 
 	sugar := *logger.Sugar()
 
-	st := storage.NewFileStorage(&sugar, cfg.st)
+	st, err := storage.New(&sugar, cfg.st)
+	if err != nil {
+		return fmt.Errorf("failed to set up storage: %w", err)
+	}
 
 	server := &http.Server{
 		Addr:    cfg.address.String(),
@@ -41,7 +44,7 @@ func run(cfg config) error {
 	go func() {
 		sugar.Infof("running server on %s", cfg.address.String())
 		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			sugar.Fatalf("HTTP service error: %s", err)
+			sugar.Errorf("HTTP service error: %s", err)
 		}
 		sugar.Info("HTTP service stopped")
 		serverChan <- struct{}{}
@@ -61,10 +64,10 @@ func run(cfg config) error {
 	defer shutdownRelease()
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		sugar.Fatalf("HTTP shutdown error: %s", err)
+		sugar.Errorf("HTTP shutdown error: %s", err)
 	}
 
-	st.Flush()
+	st.Close()
 
 	sugar.Info("Shutdown complete.")
 
