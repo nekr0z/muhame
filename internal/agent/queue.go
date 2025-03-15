@@ -5,11 +5,11 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"sync"
 
+	"github.com/nekr0z/muhame/internal/httpclient"
 	"github.com/nekr0z/muhame/internal/metrics"
 )
 
@@ -51,7 +51,7 @@ func (q *queue) pop() *queuedMetric {
 	return m
 }
 
-func (q *queue) sendMetrics(c *http.Client, addr string) {
+func (q *queue) sendMetrics(c httpclient.Client, addr string) {
 	mm := make([]queuedMetric, 0)
 
 	for m := q.pop(); m != nil; m = q.pop() {
@@ -65,7 +65,7 @@ func (q *queue) sendMetrics(c *http.Client, addr string) {
 	sendAll(c, addr, mm)
 }
 
-func sendAll(c *http.Client, addr string, mm []queuedMetric) {
+func sendAll(c httpclient.Client, addr string, mm []queuedMetric) {
 	if sendBulk(c, addr, mm) == nil {
 		return
 	}
@@ -75,30 +75,15 @@ func sendAll(c *http.Client, addr string, mm []queuedMetric) {
 	}
 }
 
-func sendBulk(c *http.Client, addr string, mm []queuedMetric) error {
+func sendBulk(c httpclient.Client, addr string, mm []queuedMetric) error {
 	b := zipBulk(mm)
 
-	req, err := http.NewRequest(http.MethodPost, endpointBulk(addr), b)
-	if err != nil {
-		panic(err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Encoding", "gzip")
-
-	resp, err := c.Do(req)
+	code, err := c.Send(b.Bytes(), endpointBulk(addr))
 	if err != nil {
 		return err
 	}
 
-	if resp == nil {
-		return fmt.Errorf("nil response")
-	}
-
-	_, _ = io.Copy(io.Discard, resp.Body)
-	resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
+	if code != http.StatusOK {
 		return fmt.Errorf("bulk not accepted")
 	}
 
@@ -148,29 +133,14 @@ func zipBulk(mm []queuedMetric) *bytes.Buffer {
 	return &b
 }
 
-func sendMetric(c *http.Client, m queuedMetric, addr string) {
+func sendMetric(c httpclient.Client, m queuedMetric, addr string) {
 	bb := metrics.ToJSON(m.val, m.name)
 
 	b := compress(bb)
 
-	req, err := http.NewRequest(http.MethodPost, endpointSingle(addr), &b)
-	if err != nil {
-		panic(err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Encoding", "gzip")
-
-	resp, _ := c.Do(req)
+	_, _ = c.Send(b.Bytes(), endpointSingle(addr))
 	// Error is ignored since increment #7 test expects us to just happily go
 	// on, even if the response is breaking HTTP session.
-
-	if resp == nil {
-		return
-	}
-
-	_, _ = io.Copy(io.Discard, resp.Body)
-	resp.Body.Close()
 }
 
 type queuedMetric struct {

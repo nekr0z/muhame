@@ -36,7 +36,7 @@ func run(cfg config) error {
 
 	server := &http.Server{
 		Addr:    cfg.address.String(),
-		Handler: router.New(logger, st),
+		Handler: router.New(logger, st, cfg.signKey),
 	}
 
 	serverChan := make(chan struct{}, 1)
@@ -77,4 +77,5 @@ func run(cfg config) error {
 type config struct {
 	address addr.NetAddress
 	st      storage.Config
+	signKey string
 }

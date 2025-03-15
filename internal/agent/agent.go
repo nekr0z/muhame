@@ -3,28 +3,74 @@ package agent
 
 import (
 	"context"
+	"flag"
+	"log"
 	"time"
 
+	"github.com/caarlos0/env/v11"
 	"github.com/nekr0z/muhame/internal/addr"
 	"github.com/nekr0z/muhame/internal/httpclient"
 )
 
+type envConfig struct {
+	Address        addr.NetAddress `env:"ADDRESS"`
+	ReportInterval int             `env:"REPORT_INTERVAL"`
+	PollInterval   int             `env:"POLL_INTERVAL"`
+	Key            string          `env:"KEY"`
+}
+
+func New() Agent {
+	cfg := envConfig{
+		Address: addr.NetAddress{
+			Host: "localhost",
+			Port: 8080,
+		},
+	}
+
+	flag.Var(&cfg.Address, "a", "host:port to send metrics to")
+	flag.IntVar(&cfg.ReportInterval, "r", 10, "seconds between sending consecutive reports")
+	flag.IntVar(&cfg.PollInterval, "p", 2, "seconds between acquiring metrics")
+	flag.StringVar(&cfg.Key, "k", "", "signing key")
+
+	flag.Parse()
+
+	err := env.Parse(&cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	return Agent{
+		address:        cfg.Address,
+		reportInterval: time.Duration(cfg.ReportInterval) * time.Second,
+		pollInterval:   time.Duration(cfg.PollInterval) * time.Second,
+		signKey:        cfg.Key,
+	}
+}
+
 // Run starts the agent to collect all metrics and send them to the server.
-func Run(ctx context.Context, config Config) error {
+func (a Agent) Run(ctx context.Context) error {
+	if a.signKey != "" {
+		log.Printf("using key \"%s\" to sign messages", a.signKey)
+	}
+
 	q := &queue{}
 
-	go collect(ctx, q, config.PollInterval)
-	go send(ctx, q, config.Address, config.ReportInterval)
+	go collect(ctx, q, a.pollInterval)
+	go send(ctx, q, a.address, a.reportInterval, a.signKey)
 
 	<-ctx.Done()
 	return ctx.Err()
 }
 
-// Config configures the agent.
-type Config struct {
-	Address        addr.NetAddress
-	ReportInterval time.Duration
-	PollInterval   time.Duration
+type Agent struct {
+	address        addr.NetAddress
+	reportInterval time.Duration
+	pollInterval   time.Duration
+	signKey        string
+}
+
+func (a Agent) Address() addr.NetAddress {
+	return a.address
 }
 
 func collect(ctx context.Context, q *queue, interval time.Duration) {
@@ -41,13 +87,13 @@ func collect(ctx context.Context, q *queue, interval time.Duration) {
 	}
 }
 
-func send(ctx context.Context, q *queue, address addr.NetAddress, interval time.Duration) {
+func send(ctx context.Context, q *queue, address addr.NetAddress, interval time.Duration, key string) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			q.sendMetrics(httpclient.New(), address.StringWithProto())
+			q.sendMetrics(httpclient.New().WithKey(key), address.StringWithProto())
 			time.Sleep(interval)
 		}
 	}

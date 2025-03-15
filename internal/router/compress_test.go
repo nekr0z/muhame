@@ -33,7 +33,7 @@ func TestNew_GzippedRequest(t *testing.T) {
 		m:    testMetric,
 	}
 
-	r := router.New(log, st)
+	r := router.New(log, st, "")
 
 	req := httptest.NewRequest("POST", "/value/", &comp)
 	req.Header.Set("Content-Encoding", "gzip")
@@ -55,7 +55,7 @@ func TestNew_GzippedResponse(t *testing.T) {
 		m:    testMetric,
 	}
 
-	r := router.New(log, st)
+	r := router.New(log, st, "")
 
 	req := httptest.NewRequest("POST", "/value/", strings.NewReader(in))
 	req.Header.Set("Accept-Encoding", "gzip")

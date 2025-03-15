@@ -11,11 +11,12 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	config := configure()
+	a := agent.New()
 
-	log.Printf("running and sending metrics to %s", flagNetAddress.String())
+	addr := a.Address()
+	log.Printf("running and sending metrics to %s", addr.String())
 
-	if err := agent.Run(ctx, config); err != nil {
+	if err := a.Run(ctx); err != nil {
 		log.Fatal(err)
 	}
 }
