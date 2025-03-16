@@ -5,6 +5,10 @@ import (
 	"context"
 	"flag"
 	"log"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/caarlos0/env/v11"
@@ -17,6 +21,19 @@ type envConfig struct {
 	ReportInterval int             `env:"REPORT_INTERVAL"`
 	PollInterval   int             `env:"POLL_INTERVAL"`
 	Key            string          `env:"KEY"`
+	RateLimit      int             `env:"RATE_LIMIT"`
+}
+
+type Agent struct {
+	address        addr.NetAddress
+	reportInterval time.Duration
+	pollInterval   time.Duration
+	signKey        string
+	workers        int
+
+	q      *queue
+	workCh chan struct{}
+	wg     *sync.WaitGroup
 }
 
 func New() Agent {
@@ -31,6 +48,7 @@ func New() Agent {
 	flag.IntVar(&cfg.ReportInterval, "r", 10, "seconds between sending consecutive reports")
 	flag.IntVar(&cfg.PollInterval, "p", 2, "seconds between acquiring metrics")
 	flag.StringVar(&cfg.Key, "k", "", "signing key")
+	flag.IntVar(&cfg.RateLimit, "l", 1, "simultaneous requests")
 
 	flag.Parse()
 
@@ -44,36 +62,57 @@ func New() Agent {
 		reportInterval: time.Duration(cfg.ReportInterval) * time.Second,
 		pollInterval:   time.Duration(cfg.PollInterval) * time.Second,
 		signKey:        cfg.Key,
+		workers:        cfg.RateLimit,
+		q:              &queue{},
+		workCh:         make(chan struct{}),
+		wg:             &sync.WaitGroup{},
 	}
 }
 
 // Run starts the agent to collect all metrics and send them to the server.
-func (a Agent) Run(ctx context.Context) error {
+func (a Agent) Run() {
+	log.Printf("running and sending metrics to %s", a.address.String())
 	if a.signKey != "" {
 		log.Printf("using key \"%s\" to sign messages", a.signKey)
 	}
 
-	q := &queue{}
+	ctx, cancel := context.WithCancel(context.Background())
 
-	go collect(ctx, q, a.pollInterval)
-	go send(ctx, q, a.address, a.reportInterval, a.signKey)
+	for range a.workers {
+		a.wg.Add(1)
+		go a.worker(ctx)
+	}
 
-	<-ctx.Done()
-	return ctx.Err()
+	a.wg.Add(3)
+	go a.collectBasic(ctx)
+	go a.collectAux(ctx)
+	go a.send(ctx)
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	<-sigChan
+	log.Print("Shutting down...")
+	cancel()
+
+	a.wg.Wait()
+	log.Print("Done.")
 }
 
-type Agent struct {
-	address        addr.NetAddress
-	reportInterval time.Duration
-	pollInterval   time.Duration
-	signKey        string
+func (a Agent) worker(ctx context.Context) {
+	defer a.wg.Done()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-a.workCh:
+			a.q.sendMetrics(httpclient.New().WithKey(a.signKey), a.address.StringWithProto())
+		}
+	}
 }
 
-func (a Agent) Address() addr.NetAddress {
-	return a.address
-}
-
-func collect(ctx context.Context, q *queue, interval time.Duration) {
+func (a Agent) collectBasic(ctx context.Context) {
+	defer a.wg.Done()
 	var counter int64
 	for {
 		select {
@@ -81,20 +120,34 @@ func collect(ctx context.Context, q *queue, interval time.Duration) {
 			return
 		default:
 			counter++
-			collectMetrics(q, counter)
-			time.Sleep(interval)
+			collectBasicMetrics(a.q, counter)
+			time.Sleep(a.pollInterval)
 		}
 	}
 }
 
-func send(ctx context.Context, q *queue, address addr.NetAddress, interval time.Duration, key string) {
+func (a Agent) collectAux(ctx context.Context) {
+	defer a.wg.Done()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			q.sendMetrics(httpclient.New().WithKey(key), address.StringWithProto())
-			time.Sleep(interval)
+			collectAuxMetrics(a.q)
+			time.Sleep(a.pollInterval)
+		}
+	}
+}
+
+func (a Agent) send(ctx context.Context) {
+	defer a.wg.Done()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			a.workCh <- struct{}{}
+			time.Sleep(a.reportInterval)
 		}
 	}
 }

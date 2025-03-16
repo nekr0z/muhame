@@ -16,6 +16,14 @@ func checkSig(key string) middleware {
 				return
 			}
 
+			sig := r.Header.Get(hash.Header)
+			if sig == "" {
+				// Yes, this is absolutely stupid, but this is the behavior the
+				// acceptance tests expect.
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			body := r.Body
 			defer body.Close()
 
@@ -26,10 +34,7 @@ func checkSig(key string) middleware {
 			}
 
 			calculated := hash.Signature(bb, key)
-
-			sig := r.Header.Get(hash.Header)
-
-			if sig != "" && calculated != sig {
+			if calculated != sig {
 				http.Error(w, "signature does not match", http.StatusBadRequest)
 				return
 			}
@@ -79,6 +84,8 @@ func addSig(key string) middleware {
 
 var _ http.ResponseWriter = &responseWriter{}
 
+// Customizing http.ResponseWriter this way in production code is a VERY bad
+// idea but we do it for educational purposes here.
 type responseWriter struct {
 	w      io.Writer
 	code   int
