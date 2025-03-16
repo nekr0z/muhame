@@ -15,6 +15,7 @@ type envConfig struct {
 	Filename      string          `env:"FILE_STORAGE_PATH"`
 	Restore       bool            `env:"RESTORE"`
 	DatabaseURL   string          `env:"DATABASE_DSN"`
+	Key           string          `env:"KEY"`
 }
 
 func newConfig() config {
@@ -30,6 +31,7 @@ func newConfig() config {
 	flag.StringVar(&cfg.Filename, "f", "metrics.sav", "file to store metrics in")
 	flag.BoolVar(&cfg.Restore, "r", true, "restore metrics from file on start")
 	flag.StringVar(&cfg.DatabaseURL, "d", "", "database URL")
+	flag.StringVar(&cfg.Key, "k", "", "signing key")
 
 	flag.Parse()
 
@@ -46,5 +48,6 @@ func newConfig() config {
 			Restore:     cfg.Restore,
 			DatabaseDSN: cfg.DatabaseURL,
 		},
+		signKey: cfg.Key,
 	}
 }

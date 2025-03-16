@@ -1,6 +1,7 @@
 package router_test
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nekr0z/muhame/internal/hash"
 	"github.com/nekr0z/muhame/internal/metrics"
 	"github.com/nekr0z/muhame/internal/router"
 	"github.com/nekr0z/muhame/internal/storage"
@@ -97,7 +99,7 @@ func TestNew_JSONUpdate(t *testing.T) {
 				m:    tt.wantMetric,
 			}
 
-			r := router.New(log, st)
+			r := router.New(log, st, "")
 
 			req := httptest.NewRequest("POST", "/update/", strings.NewReader(tt.in))
 			res := httptest.NewRecorder()
@@ -178,7 +180,7 @@ func TestNew_JSONValue(t *testing.T) {
 				m:    tt.m,
 			}
 
-			r := router.New(log, st)
+			r := router.New(log, st, "")
 
 			req := httptest.NewRequest("POST", "/value/", strings.NewReader(tt.in))
 			res := httptest.NewRecorder()
@@ -199,7 +201,7 @@ func TestNew_Root(t *testing.T) {
 		t: t,
 	}
 
-	r := router.New(log, st)
+	r := router.New(log, st, "")
 
 	req := httptest.NewRequest("GET", "/", nil)
 	res := httptest.NewRecorder()
@@ -253,7 +255,7 @@ func TestNew_Ping(t *testing.T) {
 				t.Cleanup(st.Close)
 			}
 
-			r := router.New(log, st)
+			r := router.New(log, st, "")
 			req := httptest.NewRequest("GET", "/ping", nil)
 			res := httptest.NewRecorder()
 			r.ServeHTTP(res, req)
@@ -296,7 +298,7 @@ func TestNew_Updates(t *testing.T) {
 }
 ]`
 
-	r := router.New(log, st)
+	r := router.New(log, st, "")
 
 	req := httptest.NewRequest("POST", "/updates/", strings.NewReader(in))
 	res := httptest.NewRecorder()
@@ -353,6 +355,41 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func TestNew_Signature(t *testing.T) {
+	in := `{"id":"test","type":"counter","delta":1}`
+	key := "testkey"
+	sig := hash.Signature([]byte(in), key)
+
+	st := &mockStorage{
+		t:    t,
+		name: "test",
+		m:    metrics.Counter(1),
+	}
+
+	log := zap.NewNop()
+
+	r := router.New(log, st, "testkey")
+
+	body := bytes.NewBufferString(in)
+
+	req := httptest.NewRequest(http.MethodPost, "/update/", body)
+	req.Header.Add(hash.Header, sig)
+	req.Header.Add("Content-Type", "application/json")
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	result := res.Result()
+	defer result.Body.Close()
+
+	b, err := io.ReadAll(result.Body)
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, result.StatusCode, string(b))
+	assert.Contains(t, result.Header, hash.Header)
+	assert.Equal(t, sig, result.Header.Get(hash.Header))
 }
 
 var _ storage.Storage = &mockStorage{}

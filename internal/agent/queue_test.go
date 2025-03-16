@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/nekr0z/muhame/internal/httpclient"
 	"github.com/nekr0z/muhame/internal/metrics"
 )
 
@@ -58,7 +59,7 @@ func TestSendMetric(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			sendMetric(http.DefaultClient, tt.m, srv.URL)
+			sendMetric(httpclient.New(), tt.m, srv.URL)
 		})
 	}
 }
@@ -105,7 +106,7 @@ func TestSendBulk(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	q.sendMetrics(http.DefaultClient, srv.URL)
+	q.sendMetrics(httpclient.New(), srv.URL)
 }
 
 func TestSendBulk_Fallback(t *testing.T) {
@@ -138,7 +139,7 @@ func TestSendBulk_Fallback(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	q.sendMetrics(http.DefaultClient, srv.URL)
+	q.sendMetrics(httpclient.New(), srv.URL)
 }
 
 func TestSendBulk_EmptyQueue(t *testing.T) {
@@ -149,5 +150,5 @@ func TestSendBulk_EmptyQueue(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	q.sendMetrics(http.DefaultClient, srv.URL)
+	q.sendMetrics(httpclient.New(), srv.URL)
 }

@@ -10,10 +10,17 @@ import (
 	"go.uber.org/zap"
 )
 
-func New(log *zap.Logger, st storage.Storage) http.Handler {
+func New(log *zap.Logger, st storage.Storage, key string) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(logger(log))
+
+	if key != "" {
+		log.Info("using key to verify messages", zap.String("key", key))
+		r.Use(checkSig(key))
+		r.Use(addSig(key))
+	}
+
 	r.Use(acceptGzip)
 	r.Use(respondGzip)
 

@@ -5,9 +5,11 @@ import (
 	"runtime"
 
 	"github.com/nekr0z/muhame/internal/metrics"
+	"github.com/shirou/gopsutil/v4/load"
+	"github.com/shirou/gopsutil/v4/mem"
 )
 
-func collectMetrics(q *queue, counter int64) {
+func collectBasicMetrics(q *queue, counter int64) {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 
@@ -44,6 +46,33 @@ func collectMetrics(q *queue, counter int64) {
 		"PollCount":   metrics.Counter(counter),
 	}
 
+	pushAll(mm, q)
+}
+
+func collectAuxMetrics(q *queue) {
+	vm, err := mem.VirtualMemory()
+	if err != nil {
+		panic(err)
+	}
+
+	cpu, err := load.Avg()
+	if err != nil {
+		panic(err)
+	}
+
+	var mem runtime.MemStats
+	runtime.ReadMemStats(&mem)
+
+	mm := map[string]metrics.Metric{
+		"FreeMemory":      metrics.Gauge(vm.Available),
+		"TotalMemory":     metrics.Gauge(vm.Total),
+		"CPUUtilization1": metrics.Gauge(cpu.Load1),
+	}
+
+	pushAll(mm, q)
+}
+
+func pushAll(mm map[string]metrics.Metric, q *queue) {
 	for k, v := range mm {
 		q.push(queuedMetric{
 			name: k,
