@@ -10,6 +10,8 @@ import (
 	"github.com/nekr0z/muhame/internal/hash"
 )
 
+const defaultRetries = 3
+
 type Client struct {
 	c   *http.Client
 	key string
@@ -18,7 +20,7 @@ type Client struct {
 func New() Client {
 	return Client{
 		c: resty.New().
-			SetRetryCount(3).
+			SetRetryCount(defaultRetries).
 			GetClient(),
 	}
 }

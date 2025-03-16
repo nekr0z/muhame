@@ -78,8 +78,8 @@ func (a Agent) Run() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	a.wg.Add(a.workers)
 	for range a.workers {
-		a.wg.Add(1)
 		go a.worker(ctx)
 	}
 
