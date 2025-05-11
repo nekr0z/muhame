@@ -6,9 +6,10 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
+
 	"github.com/nekr0z/muhame/internal/handlers"
 	"github.com/nekr0z/muhame/internal/storage"
-	"go.uber.org/zap"
 )
 
 func New(log *zap.Logger, st storage.Storage, key string) http.Handler {

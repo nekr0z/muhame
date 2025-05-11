@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/go-resty/resty/v2"
+
 	"github.com/nekr0z/muhame/internal/hash"
 )
 

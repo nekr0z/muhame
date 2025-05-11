@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+
 	"github.com/nekr0z/muhame/internal/metrics"
 	"github.com/nekr0z/muhame/internal/storage"
 )

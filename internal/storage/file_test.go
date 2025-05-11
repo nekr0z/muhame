@@ -6,11 +6,12 @@ import (
 	"path"
 	"testing"
 
-	"github.com/nekr0z/muhame/internal/metrics"
-	"github.com/nekr0z/muhame/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+
+	"github.com/nekr0z/muhame/internal/metrics"
+	"github.com/nekr0z/muhame/internal/storage"
 )
 
 func TestStopAndLoad(t *testing.T) {

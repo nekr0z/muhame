@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nekr0z/muhame/internal/metrics"
 	"go.uber.org/zap"
+
+	"github.com/nekr0z/muhame/internal/metrics"
 )
 
 var ErrMetricNotFound = fmt.Errorf("metric not found")

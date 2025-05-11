@@ -9,13 +9,14 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	"github.com/nekr0z/muhame/internal/metrics"
-	"github.com/nekr0z/muhame/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"go.uber.org/zap"
+
+	"github.com/nekr0z/muhame/internal/metrics"
+	"github.com/nekr0z/muhame/internal/storage"
 )
 
 //go:embed testdata/migrations/*.sql

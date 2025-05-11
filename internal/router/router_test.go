@@ -10,16 +10,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nekr0z/muhame/internal/hash"
-	"github.com/nekr0z/muhame/internal/metrics"
-	"github.com/nekr0z/muhame/internal/router"
-	"github.com/nekr0z/muhame/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"go.uber.org/zap"
+
+	"github.com/nekr0z/muhame/internal/hash"
+	"github.com/nekr0z/muhame/internal/metrics"
+	"github.com/nekr0z/muhame/internal/router"
+	"github.com/nekr0z/muhame/internal/storage"
 )
 
 var testDSN string

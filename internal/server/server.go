@@ -10,10 +10,11 @@ import (
 	"syscall"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/nekr0z/muhame/internal/addr"
 	"github.com/nekr0z/muhame/internal/router"
 	"github.com/nekr0z/muhame/internal/storage"
-	"go.uber.org/zap"
 )
 
 func Run() error {

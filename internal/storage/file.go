@@ -7,9 +7,10 @@ import (
 	"os"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/nekr0z/muhame/internal/metrics"
 	"github.com/nekr0z/muhame/internal/retry"
-	"go.uber.org/zap"
 )
 
 type Config struct {
