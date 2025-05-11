@@ -3,6 +3,7 @@ package router
 
 import (
 	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nekr0z/muhame/internal/handlers"
@@ -31,6 +32,8 @@ func New(log *zap.Logger, st storage.Storage, key string) http.Handler {
 	r.Get("/value/{type}/{name}", handlers.ValueHandleFunc(st))
 	r.Get("/ping", handlers.PingHandleFunc(st))
 	r.Get("/", handlers.RootHandleFunc(st))
+
+	r.Handle("/debug/pprof/*", http.DefaultServeMux)
 
 	return r
 }

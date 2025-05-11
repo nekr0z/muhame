@@ -25,7 +25,10 @@ func respondGzip(next http.Handler) http.Handler {
 		if slices.Contains(r.Header.Values("Accept-Encoding"), "gzip") {
 			w.Header().Set("Content-Encoding", "gzip")
 
-			zw := gzip.NewWriter(w)
+			zw, err := gzip.NewWriterLevel(w, gzip.HuffmanOnly)
+			if err != nil {
+				panic(err)
+			}
 			defer zw.Close()
 
 			wr := &gzipWriter{w, zw}
