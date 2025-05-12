@@ -10,6 +10,7 @@ import (
 	"github.com/nekr0z/muhame/internal/storage"
 )
 
+// BulkUpdateHandleFunc returns the handler for the /updates/ endpoint.
 func BulkUpdateHandleFunc(st storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bu, ok := st.(bulkUpdater)

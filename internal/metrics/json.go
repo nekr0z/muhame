@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// JSONMetric is a metric serialized into JSON format.
 type JSONMetric struct {
 	ID    string   `json:"id"`              // имя метрики
 	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
@@ -12,6 +13,7 @@ type JSONMetric struct {
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
+// Metric returns the Metric value.
 func (j JSONMetric) Metric() (Metric, error) {
 	switch j.MType {
 	case Gauge(0).Type():
@@ -29,6 +31,7 @@ func (j JSONMetric) Metric() (Metric, error) {
 	}
 }
 
+// Named returns the Named metric.
 func (j JSONMetric) Named() (Named, error) {
 	n := Named{Name: j.ID}
 
@@ -39,6 +42,7 @@ func (j JSONMetric) Named() (Named, error) {
 	return n, err
 }
 
+// ToJSON converts the metric to JSON format.
 func ToJSON(m Metric, name string) []byte {
 	var jm JSONMetric
 	jm.ID = name
@@ -64,6 +68,7 @@ func ToJSON(m Metric, name string) []byte {
 	return b
 }
 
+// FromJSON unmarshals the JSON format to Metric.
 func FromJSON(b []byte) (Named, error) {
 	var jm JSONMetric
 	var n Named

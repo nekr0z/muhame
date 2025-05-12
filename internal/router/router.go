@@ -12,6 +12,7 @@ import (
 	"github.com/nekr0z/muhame/internal/storage"
 )
 
+// New returns new router.
 func New(log *zap.Logger, st storage.Storage, key string) http.Handler {
 	r := chi.NewRouter()
 

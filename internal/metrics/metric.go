@@ -6,12 +6,14 @@ import (
 	"strconv"
 )
 
+// Metric represents a metric.
 type Metric interface {
 	String() string
 	Update(Metric) (Metric, error)
 	Type() string
 }
 
+// Named represents a named metric.
 type Named struct {
 	Name string
 	Metric
@@ -42,10 +44,12 @@ type Gauge float64
 
 var _ Metric = Gauge(0)
 
+// String implements the Stringer interface.
 func (g Gauge) String() string {
 	return fmt.Sprintf("%g", g)
 }
 
+// Update updates the metric value.
 func (g Gauge) Update(m Metric) (Metric, error) {
 	n, ok := m.(Gauge)
 	if !ok {
@@ -54,6 +58,7 @@ func (g Gauge) Update(m Metric) (Metric, error) {
 	return n, nil
 }
 
+// Type returns the metric type.
 func (g Gauge) Type() string {
 	return "gauge"
 }
@@ -63,10 +68,12 @@ type Counter int64
 
 var _ Metric = Counter(0)
 
+// String implements the Stringer interface.
 func (c Counter) String() string {
 	return fmt.Sprintf("%d", c)
 }
 
+// Update updates the metric value.
 func (c Counter) Update(m Metric) (Metric, error) {
 	inc, ok := m.(Counter)
 	if !ok {
@@ -75,6 +82,7 @@ func (c Counter) Update(m Metric) (Metric, error) {
 	return c + inc, nil
 }
 
+// Type returns the metric type.
 func (c Counter) Type() string {
 	return "counter"
 }

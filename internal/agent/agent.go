@@ -25,6 +25,7 @@ type envConfig struct {
 	RateLimit      int             `env:"RATE_LIMIT"`
 }
 
+// Agent is the metric-sending agent.
 type Agent struct {
 	address        addr.NetAddress
 	reportInterval time.Duration
@@ -37,6 +38,7 @@ type Agent struct {
 	wg     *sync.WaitGroup
 }
 
+// New creates a new agent.
 func New() Agent {
 	cfg := envConfig{
 		Address: addr.NetAddress{

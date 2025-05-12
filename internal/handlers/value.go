@@ -13,7 +13,7 @@ import (
 	"github.com/nekr0z/muhame/internal/storage"
 )
 
-// ValueHandleFunc returns the handler for the /value/ endpoint.
+// ValueHandleFunc returns the handler for the /value/*/* endpoint.
 func ValueHandleFunc(st getter) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m, err := st.Get(r.Context(), chi.URLParam(r, "type"), chi.URLParam(r, "name"))
@@ -30,6 +30,7 @@ func ValueHandleFunc(st getter) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
+// ValueJSONHandleFunc returns the handler for the /value/ endpoint.
 func ValueJSONHandleFunc(st getter) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()

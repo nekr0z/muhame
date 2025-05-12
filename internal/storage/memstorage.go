@@ -19,6 +19,7 @@ func newMemStorage() *memStorage {
 	}
 }
 
+// Update implements the Storage interface.
 func (s *memStorage) Update(_ context.Context, m metrics.Named) error {
 	t := m.Type()
 
@@ -38,6 +39,7 @@ func (s *memStorage) Update(_ context.Context, m metrics.Named) error {
 	return err
 }
 
+// Get implements the Storage interface.
 func (s *memStorage) Get(_ context.Context, t, name string) (metrics.Metric, error) {
 	mm, ok := s.mm[t]
 	if !ok {
@@ -52,6 +54,7 @@ func (s *memStorage) Get(_ context.Context, t, name string) (metrics.Metric, err
 	return m, nil
 }
 
+// List implements the Storage interface.
 func (s *memStorage) List(_ context.Context) ([]metrics.Named, error) {
 	var mms []metrics.Named
 
@@ -65,5 +68,6 @@ func (s *memStorage) List(_ context.Context) ([]metrics.Named, error) {
 	return mms, nil
 }
 
+// Close implements the Storage interface.
 func (s *memStorage) Close() {
 }

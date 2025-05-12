@@ -1,3 +1,4 @@
+// Package httpclient provides a client for HTTP requests.
 package httpclient
 
 import (
@@ -13,11 +14,13 @@ import (
 
 const defaultRetries = 3
 
+// Client is a client for HTTP requests.
 type Client struct {
 	c   *http.Client
 	key string
 }
 
+// New returns a new Client.
 func New() Client {
 	return Client{
 		c: resty.New().
@@ -26,11 +29,13 @@ func New() Client {
 	}
 }
 
+// WithKey sets the signing key for the client.
 func (c Client) WithKey(key string) Client {
 	c.key = key
 	return c
 }
 
+// Send sends a request to the given endpoint.
 func (c Client) Send(msg []byte, endpoint string) (int, error) {
 	b := bytes.NewBuffer(msg)
 	req, err := http.NewRequest(http.MethodPost, endpoint, b)

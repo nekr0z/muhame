@@ -1,3 +1,4 @@
+// Package server implements the metric collection server.
 package server
 
 import (
@@ -17,6 +18,7 @@ import (
 	"github.com/nekr0z/muhame/internal/storage"
 )
 
+// Run creates and runs the server.
 func Run() error {
 	cfg := newConfig()
 	return run(cfg)
