@@ -35,20 +35,34 @@ func Example() {
 	defer srv.Close()
 
 	req, _ := http.NewRequest("POST", srv.URL+"/update/gauge/test/1.2", nil)
-	resp, _ := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
 	fmt.Printf("Status: %d\n", resp.StatusCode)
 
 	req, _ = http.NewRequest("GET", srv.URL+"/value/gauge/test", nil)
-	resp, _ = http.DefaultClient.Do(req)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
 	defer resp.Body.Close()
 	result, _ := io.ReadAll(resp.Body)
 	fmt.Printf("Value: %s\n", string(result))
 
 	req, _ = http.NewRequest("POST", srv.URL+"/update/", strings.NewReader(`{"id":"test","type":"gauge","value":0.5}`))
-	_, _ = http.DefaultClient.Do(req)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
 
 	req, _ = http.NewRequest("GET", srv.URL+"/value/gauge/test", nil)
-	resp, _ = http.DefaultClient.Do(req)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
 	defer resp.Body.Close()
 	result, _ = io.ReadAll(resp.Body)
 	fmt.Printf("Value: %s\n", string(result))
