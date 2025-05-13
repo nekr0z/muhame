@@ -18,6 +18,8 @@ type Config struct {
 	Filename    string
 	Restore     bool
 	DatabaseDSN string
+
+	InMemory bool
 }
 
 type fileStorage struct {

@@ -3,6 +3,7 @@ package router_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -24,6 +25,39 @@ import (
 )
 
 var testDSN string
+
+func Example() {
+	log := zap.NewNop()
+	st, _ := storage.New(log.Sugar(), storage.Config{InMemory: true})
+	r := router.New(log, st, "")
+
+	srv := httptest.NewServer(r)
+	defer srv.Close()
+
+	req, _ := http.NewRequest("POST", srv.URL+"/update/gauge/test/1.2", nil)
+	resp, _ := http.DefaultClient.Do(req)
+	fmt.Printf("Status: %d\n", resp.StatusCode)
+
+	req, _ = http.NewRequest("GET", srv.URL+"/value/gauge/test", nil)
+	resp, _ = http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+	result, _ := io.ReadAll(resp.Body)
+	fmt.Printf("Value: %s\n", string(result))
+
+	req, _ = http.NewRequest("POST", srv.URL+"/update/", strings.NewReader(`{"id":"test","type":"gauge","value":0.5}`))
+	_, _ = http.DefaultClient.Do(req)
+
+	req, _ = http.NewRequest("GET", srv.URL+"/value/gauge/test", nil)
+	resp, _ = http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+	result, _ = io.ReadAll(resp.Body)
+	fmt.Printf("Value: %s\n", string(result))
+
+	// Output:
+	// Status: 200
+	// Value: 1.2
+	// Value: 0.5
+}
 
 func TestNew_JSONUpdate(t *testing.T) {
 	t.Parallel()

@@ -28,5 +28,9 @@ func New(log *zap.SugaredLogger, cfg Config) (Storage, error) {
 		return newDB(cfg.DatabaseDSN)
 	}
 
+	if cfg.InMemory {
+		return newMemStorage(), nil
+	}
+
 	return newFileStorage(context.TODO(), log, cfg), nil
 }
