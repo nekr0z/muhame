@@ -7,10 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nekr0z/muhame/internal/metrics"
-	"github.com/nekr0z/muhame/internal/router"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
+
+	"github.com/nekr0z/muhame/internal/metrics"
+	"github.com/nekr0z/muhame/internal/router"
 )
 
 var (

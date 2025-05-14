@@ -3,13 +3,16 @@ package router
 
 import (
 	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
+
 	"github.com/nekr0z/muhame/internal/handlers"
 	"github.com/nekr0z/muhame/internal/storage"
-	"go.uber.org/zap"
 )
 
+// New returns new router.
 func New(log *zap.Logger, st storage.Storage, key string) http.Handler {
 	r := chi.NewRouter()
 
@@ -31,6 +34,8 @@ func New(log *zap.Logger, st storage.Storage, key string) http.Handler {
 	r.Get("/value/{type}/{name}", handlers.ValueHandleFunc(st))
 	r.Get("/ping", handlers.PingHandleFunc(st))
 	r.Get("/", handlers.RootHandleFunc(st))
+
+	r.Handle("/debug/pprof/*", http.DefaultServeMux)
 
 	return r
 }

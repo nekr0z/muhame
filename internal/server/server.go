@@ -1,3 +1,4 @@
+// Package server implements the metric collection server.
 package server
 
 import (
@@ -10,12 +11,14 @@ import (
 	"syscall"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/nekr0z/muhame/internal/addr"
 	"github.com/nekr0z/muhame/internal/router"
 	"github.com/nekr0z/muhame/internal/storage"
-	"go.uber.org/zap"
 )
 
+// Run creates and runs the server.
 func Run() error {
 	cfg := newConfig()
 	return run(cfg)

@@ -7,6 +7,7 @@ import (
 	"github.com/nekr0z/muhame/internal/storage"
 )
 
+// PingHandleFunc returns the handler for the /ping/ endpoint.
 func PingHandleFunc(st storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		p, ok := st.(pingable)

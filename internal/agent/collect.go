@@ -4,9 +4,10 @@ import (
 	"math/rand"
 	"runtime"
 
-	"github.com/nekr0z/muhame/internal/metrics"
 	"github.com/shirou/gopsutil/v4/load"
 	"github.com/shirou/gopsutil/v4/mem"
+
+	"github.com/nekr0z/muhame/internal/metrics"
 )
 
 func collectBasicMetrics(q *queue, counter int64) {

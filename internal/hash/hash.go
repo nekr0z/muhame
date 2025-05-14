@@ -1,3 +1,4 @@
+// Package hash is used to generate hashes for the signatures.
 package hash
 
 import (
@@ -5,8 +6,9 @@ import (
 	"encoding/hex"
 )
 
-const Header = "Hashsha256"
+const Header = "Hashsha256" // Signature header.
 
+// Signature generates the signature for the given message and key.
 func Signature(msg []byte, key string) string {
 	kb := []byte(key)
 	msg = append(msg, kb...)

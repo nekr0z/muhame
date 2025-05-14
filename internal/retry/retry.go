@@ -1,3 +1,4 @@
+// Package retry contains the logic for retrying functions.
 package retry
 
 import "time"
@@ -9,6 +10,7 @@ var (
 	maxBackoff     = 2 * time.Second
 )
 
+// OnError wraps the given function so that it is retried if the function returns a retriable error.
 func OnError[T any](f func() (T, error), isRetriable func(error) bool) (T, error) {
 	retries := 0
 	backoff := initialBackoff
@@ -30,6 +32,7 @@ func OnError[T any](f func() (T, error), isRetriable func(error) bool) (T, error
 	return t, err
 }
 
+// Error wraps the given function so that it is retried if the function returns a retriable error.
 func Error(f func() error, isRetriable func(error) bool) error {
 	_, err := OnError(func() (struct{}, error) {
 		return struct{}{}, f()

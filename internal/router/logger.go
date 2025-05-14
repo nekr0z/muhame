@@ -41,6 +41,7 @@ type loggingResponseWriter struct {
 	responseData *responseData
 }
 
+// Write implements the io.Writer interface.
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	if r.responseData.status == 0 {
 		r.WriteHeader(http.StatusOK)
@@ -51,6 +52,7 @@ func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	return size, err
 }
 
+// WriteHeader implements the http.ResponseWriter interface.
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode

@@ -8,9 +8,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/nekr0z/muhame/internal/hash"
 	"github.com/nekr0z/muhame/internal/httpclient"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSend_Signed(t *testing.T) {

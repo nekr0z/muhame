@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v11"
+
 	"github.com/nekr0z/muhame/internal/addr"
 	"github.com/nekr0z/muhame/internal/storage"
 )

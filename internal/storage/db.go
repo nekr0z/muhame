@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
+
 	"github.com/nekr0z/muhame/internal/metrics"
 	"github.com/nekr0z/muhame/internal/retry"
 )
@@ -58,14 +59,17 @@ func newDB(dsn string) (*db, error) {
 	return &db{database}, nil
 }
 
+// Close implements the Storage interface.
 func (db *db) Close() {
 	_ = db.DB.Close()
 }
 
+// Ping allows to check if the connection is alive.
 func (db *db) Ping(ctx context.Context) error {
 	return db.DB.PingContext(ctx)
 }
 
+// Get implements the Storage interface.
 func (db *db) Get(ctx context.Context, t, name string) (metrics.Metric, error) {
 	switch t {
 	case metrics.Counter(0).Type():
@@ -77,6 +81,7 @@ func (db *db) Get(ctx context.Context, t, name string) (metrics.Metric, error) {
 	}
 }
 
+// Update implements the Storage interface.
 func (db *db) Update(ctx context.Context, metric metrics.Named) error {
 	switch v := metric.Metric.(type) {
 	case metrics.Gauge:
@@ -88,6 +93,7 @@ func (db *db) Update(ctx context.Context, metric metrics.Named) error {
 	}
 }
 
+// List returns all metrics.
 func (db *db) List(ctx context.Context) ([]metrics.Named, error) {
 	values := make([]metrics.Named, 0)
 
@@ -97,6 +103,7 @@ func (db *db) List(ctx context.Context) ([]metrics.Named, error) {
 	return values, errors.Join(err1, err2)
 }
 
+// BulkUpdate updates multiple metrics in a single transaction.
 func (db *db) BulkUpdate(ctx context.Context, mm []metrics.Named) error {
 	tx, err := retry.OnError(func() (*sql.Tx, error) {
 		return db.BeginTx(ctx, nil)

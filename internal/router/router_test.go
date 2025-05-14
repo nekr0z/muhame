@@ -3,6 +3,7 @@ package router_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -10,19 +11,67 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nekr0z/muhame/internal/hash"
-	"github.com/nekr0z/muhame/internal/metrics"
-	"github.com/nekr0z/muhame/internal/router"
-	"github.com/nekr0z/muhame/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"go.uber.org/zap"
+
+	"github.com/nekr0z/muhame/internal/hash"
+	"github.com/nekr0z/muhame/internal/metrics"
+	"github.com/nekr0z/muhame/internal/router"
+	"github.com/nekr0z/muhame/internal/storage"
 )
 
 var testDSN string
+
+func Example() {
+	log := zap.NewNop()
+	st, _ := storage.New(log.Sugar(), storage.Config{InMemory: true})
+	r := router.New(log, st, "")
+
+	srv := httptest.NewServer(r)
+	defer srv.Close()
+
+	req, _ := http.NewRequest("POST", srv.URL+"/update/gauge/test/1.2", nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	fmt.Printf("Status: %d\n", resp.StatusCode)
+
+	req, _ = http.NewRequest("GET", srv.URL+"/value/gauge/test", nil)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	result, _ := io.ReadAll(resp.Body)
+	fmt.Printf("Value: %s\n", string(result))
+
+	req, _ = http.NewRequest("POST", srv.URL+"/update/", strings.NewReader(`{"id":"test","type":"gauge","value":0.5}`))
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	req, _ = http.NewRequest("GET", srv.URL+"/value/gauge/test", nil)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	result, _ = io.ReadAll(resp.Body)
+	fmt.Printf("Value: %s\n", string(result))
+
+	// Output:
+	// Status: 200
+	// Value: 1.2
+	// Value: 0.5
+}
 
 func TestNew_JSONUpdate(t *testing.T) {
 	t.Parallel()

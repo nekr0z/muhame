@@ -92,14 +92,17 @@ type responseWriter struct {
 	header http.Header
 }
 
+// Write implements the io.Writer interface.
 func (rw *responseWriter) Write(b []byte) (int, error) {
 	return rw.w.Write(b)
 }
 
+// Header implements the http.ResponseWriter interface.
 func (rw *responseWriter) Header() http.Header {
 	return rw.header
 }
 
+// WriteHeader implements the http.ResponseWriter interface.
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.code = code
 }

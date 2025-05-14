@@ -7,9 +7,10 @@ import (
 	"os"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/nekr0z/muhame/internal/metrics"
 	"github.com/nekr0z/muhame/internal/retry"
-	"go.uber.org/zap"
 )
 
 type Config struct {
@@ -17,6 +18,8 @@ type Config struct {
 	Filename    string
 	Restore     bool
 	DatabaseDSN string
+
+	InMemory bool
 }
 
 type fileStorage struct {
@@ -62,6 +65,7 @@ func newFileStorage(ctx context.Context, log *zap.SugaredLogger, c Config) *file
 	return fs
 }
 
+// Update implements the Storage interface.
 func (fs *fileStorage) Update(ctx context.Context, m metrics.Named) error {
 	if err := fs.s.Update(ctx, m); err != nil {
 		return err
@@ -77,10 +81,12 @@ func (fs *fileStorage) Update(ctx context.Context, m metrics.Named) error {
 	return nil
 }
 
+// List returns all metrics.
 func (fs *fileStorage) List(ctx context.Context) ([]metrics.Named, error) {
 	return fs.s.List(ctx)
 }
 
+// Get returns a metric by name.
 func (fs *fileStorage) Get(ctx context.Context, t, name string) (metrics.Metric, error) {
 	return fs.s.Get(ctx, t, name)
 }

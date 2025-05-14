@@ -25,7 +25,10 @@ func respondGzip(next http.Handler) http.Handler {
 		if slices.Contains(r.Header.Values("Accept-Encoding"), "gzip") {
 			w.Header().Set("Content-Encoding", "gzip")
 
-			zw := gzip.NewWriter(w)
+			zw, err := gzip.NewWriterLevel(w, gzip.HuffmanOnly)
+			if err != nil {
+				panic(err)
+			}
 			defer zw.Close()
 
 			wr := &gzipWriter{w, zw}
@@ -42,6 +45,7 @@ type gzipWriter struct {
 	z *gzip.Writer
 }
 
+// Write implements the io.Writer interface.
 func (w *gzipWriter) Write(b []byte) (int, error) {
 	return w.z.Write(b)
 }
