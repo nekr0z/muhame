@@ -26,14 +26,22 @@ func ValueHandleFunc(st getter) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		w.Write([]byte(m.String()))
+		_, err = w.Write([]byte(m.String()))
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
 // ValueJSONHandleFunc returns the handler for the /value/ endpoint.
 func ValueJSONHandleFunc(st getter) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
+		defer func() {
+			err := r.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+		}()
 
 		var jm metrics.JSONMetric
 		if err := json.NewDecoder(r.Body).Decode(&jm); err != nil {

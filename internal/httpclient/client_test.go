@@ -29,5 +29,6 @@ func TestSend_Signed(t *testing.T) {
 	}))
 
 	c := httpclient.New().WithKey(key)
-	c.Send([]byte(msg), srv.URL)
+	_, err := c.Send([]byte(msg), srv.URL)
+	assert.NoError(t, err)
 }

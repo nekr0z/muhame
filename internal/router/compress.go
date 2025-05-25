@@ -29,7 +29,12 @@ func respondGzip(next http.Handler) http.Handler {
 			if err != nil {
 				panic(err)
 			}
-			defer zw.Close()
+			defer func() {
+				err = zw.Close()
+				if err != nil {
+					panic(err)
+				}
+			}()
 
 			wr := &gzipWriter{w, zw}
 

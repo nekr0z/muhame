@@ -61,7 +61,7 @@ func (c Client) Send(msg []byte, endpoint string) (int, error) {
 	}
 
 	_, _ = io.Copy(io.Discard, resp.Body)
-	resp.Body.Close()
+	err = resp.Body.Close()
 
-	return resp.StatusCode, nil
+	return resp.StatusCode, err
 }

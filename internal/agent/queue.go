@@ -97,7 +97,12 @@ func zipBulk(mm []queuedMetric) *bytes.Buffer {
 	if err != nil {
 		panic(err)
 	}
-	defer w.Close()
+	defer func() {
+		err = w.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	bw := bufio.NewWriter(w)
 

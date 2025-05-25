@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
@@ -19,7 +20,9 @@ func TestLogger(t *testing.T) {
 	log := zap.New(core)
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, respString)
+		_, err := fmt.Fprint(w, respString)
+		assert.NoError(t, err)
+
 		w.WriteHeader(http.StatusOK)
 	})
 
@@ -27,7 +30,8 @@ func TestLogger(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	logger(log)(handler).ServeHTTP(rr, req)
-	log.Sync()
+	err := log.Sync()
+	assert.NoError(t, err)
 
 	logs := observed.All()
 	require.Len(t, logs, 1)
