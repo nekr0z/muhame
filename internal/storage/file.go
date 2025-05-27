@@ -115,7 +115,12 @@ func (fs *fileStorage) restore(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		err = f.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -150,10 +155,20 @@ func (fs *fileStorage) flush(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create/truncate file: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		err = f.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	w := bufio.NewWriter(f)
-	defer w.Flush()
+	defer func() {
+		err = w.Flush()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	nameds, err := fs.s.List(ctx)
 	if err != nil {

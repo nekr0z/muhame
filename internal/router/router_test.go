@@ -39,7 +39,14 @@ func Example() {
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		err = resp.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
 	fmt.Printf("Status: %d\n", resp.StatusCode)
 
 	req, _ = http.NewRequest("GET", srv.URL+"/value/gauge/test", nil)
@@ -47,7 +54,14 @@ func Example() {
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		err = resp.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
 	result, _ := io.ReadAll(resp.Body)
 	fmt.Printf("Value: %s\n", string(result))
 
@@ -56,14 +70,27 @@ func Example() {
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		err = resp.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	req, _ = http.NewRequest("GET", srv.URL+"/value/gauge/test", nil)
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		err = resp.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
 	result, _ = io.ReadAll(resp.Body)
 	fmt.Printf("Value: %s\n", string(result))
 
@@ -431,7 +458,10 @@ func TestNew_Signature(t *testing.T) {
 	r.ServeHTTP(res, req)
 
 	result := res.Result()
-	defer result.Body.Close()
+	defer func() {
+		err := result.Body.Close()
+		assert.NoError(t, err)
+	}()
 
 	b, err := io.ReadAll(result.Body)
 	require.NoError(t, err)

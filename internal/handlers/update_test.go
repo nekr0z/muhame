@@ -69,7 +69,10 @@ func TestUpdateHandleFunc(t *testing.T) {
 			r.ServeHTTP(w, req)
 
 			res := w.Result()
-			defer res.Body.Close()
+			defer func() {
+				err := res.Body.Close()
+				assert.NoError(t, err)
+			}()
 
 			assert.Equal(t, tt.want, res.StatusCode)
 		})

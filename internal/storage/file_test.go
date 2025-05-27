@@ -21,7 +21,12 @@ func TestStopAndLoad(t *testing.T) {
 
 	tempDir, err := os.MkdirTemp(os.TempDir(), "file_storage_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		err = os.RemoveAll(tempDir)
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	fileName := path.Join(tempDir, "test.sav")
 

@@ -111,7 +111,11 @@ func (db *db) BulkUpdate(ctx context.Context, mm []metrics.Named) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err != nil {
+			err = tx.Rollback()
+		}
+	}()
 
 	stmtGauge, err := retry.OnError(func() (*sql.Stmt, error) {
 		return tx.PrepareContext(ctx, gaugeInsert)
@@ -119,7 +123,12 @@ func (db *db) BulkUpdate(ctx context.Context, mm []metrics.Named) error {
 	if err != nil {
 		return err
 	}
-	defer stmtGauge.Close()
+	defer func() {
+		err = stmtGauge.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	stmtCounter, err := retry.OnError(func() (*sql.Stmt, error) {
 		return tx.PrepareContext(ctx, counterInsert)
@@ -127,7 +136,12 @@ func (db *db) BulkUpdate(ctx context.Context, mm []metrics.Named) error {
 	if err != nil {
 		return err
 	}
-	defer stmtCounter.Close()
+	defer func() {
+		err = stmtCounter.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	for _, m := range mm {
 		switch v := m.Metric.(type) {
@@ -191,7 +205,12 @@ func (db *db) appendCounters(ctx context.Context, values []metrics.Named) ([]met
 	if err != nil {
 		return values, err
 	}
-	defer rows.Close()
+	defer func() {
+		err = rows.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	var (
 		n string
@@ -222,7 +241,12 @@ func (db *db) appendGauges(ctx context.Context, values []metrics.Named) ([]metri
 	if err != nil {
 		return values, err
 	}
-	defer rows.Close()
+	defer func() {
+		err = rows.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	var (
 		n string

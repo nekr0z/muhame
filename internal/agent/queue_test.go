@@ -44,7 +44,10 @@ func TestSendMetric(t *testing.T) {
 				assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
 				b := r.Body
-				defer b.Close()
+				defer func() {
+					err := b.Close()
+					assert.NoError(t, err)
+				}()
 
 				if r.Header.Get("Content-Encoding") == "gzip" {
 					var err error
@@ -93,7 +96,10 @@ func TestSendBulk(t *testing.T) {
 		assert.Equal(t, "gzip", r.Header.Get("Content-Encoding"))
 
 		b := r.Body
-		defer b.Close()
+		defer func() {
+			err := b.Close()
+			assert.NoError(t, err)
+		}()
 
 		var err error
 		b, err = gzip.NewReader(b)

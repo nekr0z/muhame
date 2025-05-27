@@ -37,7 +37,12 @@ func UpdateHandleFunc(st updater) func(http.ResponseWriter, *http.Request) {
 // UpdateJSONHandleFunc returns the handler for the /update/ endpoint.
 func UpdateJSONHandleFunc(st getUpdater) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
+		defer func() {
+			err := r.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+		}()
 
 		var jm metrics.JSONMetric
 		if err := json.NewDecoder(r.Body).Decode(&jm); err != nil {
@@ -53,7 +58,8 @@ func UpdateJSONHandleFunc(st getUpdater) func(http.ResponseWriter, *http.Request
 			return
 		}
 
-		if err := st.Update(r.Context(), nm); err != nil {
+		err = st.Update(r.Context(), nm)
+		if err != nil {
 			http.Error(w, fmt.Sprintf("Internal server error: %s", err), http.StatusInternalServerError)
 			return
 		}

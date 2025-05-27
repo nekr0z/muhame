@@ -175,7 +175,7 @@ func TestMain(m *testing.M) {
 	}
 
 	defer func() {
-		err := testcontainers.TerminateContainer(postgresContainer)
+		err = testcontainers.TerminateContainer(postgresContainer)
 		if err != nil {
 			panic(err)
 		}

@@ -25,7 +25,12 @@ func checkSig(key string) middleware {
 			}
 
 			body := r.Body
-			defer body.Close()
+			defer func() {
+				err := body.Close()
+				if err != nil {
+					panic(err)
+				}
+			}()
 
 			bb, err := io.ReadAll(body)
 			if err != nil {
