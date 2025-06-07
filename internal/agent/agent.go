@@ -3,6 +3,7 @@ package agent
 
 import (
 	"context"
+	"crypto/rsa"
 	"flag"
 	"log"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"github.com/caarlos0/env/v11"
 
 	"github.com/nekr0z/muhame/internal/addr"
+	"github.com/nekr0z/muhame/internal/crypt"
 	"github.com/nekr0z/muhame/internal/httpclient"
 )
 
@@ -23,6 +25,7 @@ type envConfig struct {
 	PollInterval   int             `env:"POLL_INTERVAL"`
 	Key            string          `env:"KEY"`
 	RateLimit      int             `env:"RATE_LIMIT"`
+	CryptoKey      string          `env:"CRYPTO_KEY"`
 }
 
 // Agent is the metric-sending agent.
@@ -32,6 +35,8 @@ type Agent struct {
 	pollInterval   time.Duration
 	signKey        string
 	workers        int
+
+	pubKey *rsa.PublicKey
 
 	q      *queue
 	workCh chan struct{}
@@ -52,6 +57,7 @@ func New() Agent {
 	flag.IntVar(&cfg.PollInterval, "p", 2, "seconds between acquiring metrics")
 	flag.StringVar(&cfg.Key, "k", "", "signing key")
 	flag.IntVar(&cfg.RateLimit, "l", 1, "simultaneous requests")
+	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "public key for message encryption")
 
 	flag.Parse()
 
@@ -60,7 +66,7 @@ func New() Agent {
 		panic(err)
 	}
 
-	return Agent{
+	a := Agent{
 		address:        cfg.Address,
 		reportInterval: time.Duration(cfg.ReportInterval) * time.Second,
 		pollInterval:   time.Duration(cfg.PollInterval) * time.Second,
@@ -70,6 +76,13 @@ func New() Agent {
 		workCh:         make(chan struct{}),
 		wg:             &sync.WaitGroup{},
 	}
+
+	a.pubKey, err = crypt.LoadPublicKey(cfg.CryptoKey)
+	if err != nil {
+		a.pubKey = nil
+	}
+
+	return a
 }
 
 // Run starts the agent to collect all metrics and send them to the server.
@@ -109,7 +122,7 @@ func (a Agent) worker(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-a.workCh:
-			a.q.sendMetrics(httpclient.New().WithKey(a.signKey), a.address.StringWithProto())
+			a.q.sendMetrics(httpclient.New().WithKey(a.signKey).WithCrypto(a.pubKey), a.address.StringWithProto())
 		}
 	}
 }

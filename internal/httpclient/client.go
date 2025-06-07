@@ -3,12 +3,14 @@ package httpclient
 
 import (
 	"bytes"
+	"crypto/rsa"
 	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/go-resty/resty/v2"
 
+	"github.com/nekr0z/muhame/internal/crypt"
 	"github.com/nekr0z/muhame/internal/hash"
 )
 
@@ -16,8 +18,9 @@ const defaultRetries = 3
 
 // Client is a client for HTTP requests.
 type Client struct {
-	c   *http.Client
-	key string
+	c      *http.Client
+	key    string
+	pubKey *rsa.PublicKey
 }
 
 // New returns a new Client.
@@ -35,8 +38,22 @@ func (c Client) WithKey(key string) Client {
 	return c
 }
 
+// WithCrypto sets the public key for the client.
+func (c Client) WithCrypto(key *rsa.PublicKey) Client {
+	c.pubKey = key
+	return c
+}
+
 // Send sends a request to the given endpoint.
 func (c Client) Send(msg []byte, endpoint string) (int, error) {
+	if c.pubKey != nil {
+		ciphertext, err := crypt.Encrypt(msg, c.pubKey)
+		if err != nil {
+			return 0, fmt.Errorf("failed to encrypt message: %w", err)
+		}
+		msg = ciphertext
+	}
+
 	b := bytes.NewBuffer(msg)
 	req, err := http.NewRequest(http.MethodPost, endpoint, b)
 	if err != nil {

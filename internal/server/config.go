@@ -7,6 +7,7 @@ import (
 	"github.com/caarlos0/env/v11"
 
 	"github.com/nekr0z/muhame/internal/addr"
+	"github.com/nekr0z/muhame/internal/crypt"
 	"github.com/nekr0z/muhame/internal/storage"
 )
 
@@ -17,6 +18,7 @@ type envConfig struct {
 	Restore       bool            `env:"RESTORE"`
 	DatabaseURL   string          `env:"DATABASE_DSN"`
 	Key           string          `env:"KEY"`
+	CryptoKey     string          `env:"CRYPTO_KEY"`
 }
 
 func newConfig() config {
@@ -33,6 +35,7 @@ func newConfig() config {
 	flag.BoolVar(&cfg.Restore, "r", true, "restore metrics from file on start")
 	flag.StringVar(&cfg.DatabaseURL, "d", "", "database URL")
 	flag.StringVar(&cfg.Key, "k", "", "signing key")
+	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "private key for message decryption")
 
 	flag.Parse()
 
@@ -41,7 +44,7 @@ func newConfig() config {
 		panic(err)
 	}
 
-	return config{
+	c := config{
 		address: cfg.Address,
 		st: storage.Config{
 			Interval:    time.Duration(cfg.StoreInterval) * time.Second,
@@ -51,4 +54,11 @@ func newConfig() config {
 		},
 		signKey: cfg.Key,
 	}
+
+	c.privateKey, err = crypt.LoadPrivateKey(cfg.CryptoKey)
+	if err != nil {
+		c.privateKey = nil
+	}
+
+	return c
 }

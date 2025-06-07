@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"net/http"
@@ -39,7 +40,7 @@ func run(cfg config) error {
 
 	server := &http.Server{
 		Addr:    cfg.address.String(),
-		Handler: router.New(logger, st, cfg.signKey),
+		Handler: router.New(logger, st, cfg.signKey, cfg.privateKey),
 	}
 
 	serverChan := make(chan struct{}, 1)
@@ -78,7 +79,8 @@ func run(cfg config) error {
 }
 
 type config struct {
-	address addr.NetAddress
-	st      storage.Config
-	signKey string
+	address    addr.NetAddress
+	st         storage.Config
+	signKey    string
+	privateKey *rsa.PrivateKey
 }

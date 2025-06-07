@@ -3,6 +3,7 @@ package router_test
 import (
 	"bytes"
 	"context"
+	"crypto/rsa"
 	"fmt"
 	"io"
 	"net/http"
@@ -29,7 +30,7 @@ var testDSN string
 func Example() {
 	log := zap.NewNop()
 	st, _ := storage.New(log.Sugar(), storage.Config{InMemory: true})
-	r := router.New(log, st, "")
+	r := router.New(log, st, "", nil)
 
 	srv := httptest.NewServer(r)
 	defer srv.Close()
@@ -175,7 +176,7 @@ func TestNew_JSONUpdate(t *testing.T) {
 				m:    tt.wantMetric,
 			}
 
-			r := router.New(log, st, "")
+			r := router.New(log, st, "", nil)
 
 			req := httptest.NewRequest("POST", "/update/", strings.NewReader(tt.in))
 			res := httptest.NewRecorder()
@@ -256,7 +257,7 @@ func TestNew_JSONValue(t *testing.T) {
 				m:    tt.m,
 			}
 
-			r := router.New(log, st, "")
+			r := router.New(log, st, "", nil)
 
 			req := httptest.NewRequest("POST", "/value/", strings.NewReader(tt.in))
 			res := httptest.NewRecorder()
@@ -277,7 +278,7 @@ func TestNew_Root(t *testing.T) {
 		t: t,
 	}
 
-	r := router.New(log, st, "")
+	r := router.New(log, st, "", nil)
 
 	req := httptest.NewRequest("GET", "/", nil)
 	res := httptest.NewRecorder()
@@ -331,7 +332,7 @@ func TestNew_Ping(t *testing.T) {
 				t.Cleanup(st.Close)
 			}
 
-			r := router.New(log, st, "")
+			r := router.New(log, st, "", nil)
 			req := httptest.NewRequest("GET", "/ping", nil)
 			res := httptest.NewRecorder()
 			r.ServeHTTP(res, req)
@@ -374,7 +375,7 @@ func TestNew_Updates(t *testing.T) {
 }
 ]`
 
-	r := router.New(log, st, "")
+	r := router.New(log, st, "", nil)
 
 	req := httptest.NewRequest("POST", "/updates/", strings.NewReader(in))
 	res := httptest.NewRecorder()
@@ -446,7 +447,7 @@ func TestNew_Signature(t *testing.T) {
 
 	log := zap.NewNop()
 
-	r := router.New(log, st, "testkey")
+	r := router.New(log, st, "testkey", &rsa.PrivateKey{})
 
 	body := bytes.NewBufferString(in)
 
