@@ -1,0 +1,5 @@
+{
+    "restore": false,
+    "store_file": "file.sav",
+    "database_dsn": "file/db"
+}
