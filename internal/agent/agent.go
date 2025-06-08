@@ -119,7 +119,7 @@ func (a Agent) Run() {
 	go a.send(ctx)
 
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	<-sigChan
 	log.Print("Shutting down...")
