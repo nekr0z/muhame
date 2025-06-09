@@ -2,6 +2,7 @@
 package router
 
 import (
+	"crypto/rsa"
 	"net/http"
 	_ "net/http/pprof"
 
@@ -13,7 +14,7 @@ import (
 )
 
 // New returns new router.
-func New(log *zap.Logger, st storage.Storage, key string) http.Handler {
+func New(log *zap.Logger, st storage.Storage, key string, privateKey *rsa.PrivateKey) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(logger(log))
@@ -22,6 +23,11 @@ func New(log *zap.Logger, st storage.Storage, key string) http.Handler {
 		log.Info("using key to verify messages", zap.String("key", key))
 		r.Use(checkSig(key))
 		r.Use(addSig(key))
+	}
+
+	if privateKey != nil {
+		log.Info("using private key to decrypt messages")
+		r.Use(decrypt(privateKey))
 	}
 
 	r.Use(acceptGzip)

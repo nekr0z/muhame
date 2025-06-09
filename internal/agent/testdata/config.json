@@ -1,0 +1,5 @@
+{
+    "key": "file-key",
+    "poll_interval": 4,
+    "report_interval": 8
+}

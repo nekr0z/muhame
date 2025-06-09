@@ -3,6 +3,7 @@ package agent
 
 import (
 	"context"
+	"crypto/rsa"
 	"flag"
 	"log"
 	"os"
@@ -14,15 +15,18 @@ import (
 	"github.com/caarlos0/env/v11"
 
 	"github.com/nekr0z/muhame/internal/addr"
+	confighelper "github.com/nekr0z/muhame/internal/config"
+	"github.com/nekr0z/muhame/internal/crypt"
 	"github.com/nekr0z/muhame/internal/httpclient"
 )
 
 type envConfig struct {
-	Address        addr.NetAddress `env:"ADDRESS"`
-	ReportInterval int             `env:"REPORT_INTERVAL"`
-	PollInterval   int             `env:"POLL_INTERVAL"`
-	Key            string          `env:"KEY"`
-	RateLimit      int             `env:"RATE_LIMIT"`
+	Address        addr.NetAddress `env:"ADDRESS" json:"address"`
+	ReportInterval int             `env:"REPORT_INTERVAL" json:"report_interval"`
+	PollInterval   int             `env:"POLL_INTERVAL" json:"poll_interval"`
+	Key            string          `env:"KEY" json:"key"`
+	RateLimit      int             `env:"RATE_LIMIT" json:"rate_limit"`
+	CryptoKey      string          `env:"CRYPTO_KEY" json:"crypto_key"`
 }
 
 // Agent is the metric-sending agent.
@@ -32,6 +36,8 @@ type Agent struct {
 	pollInterval   time.Duration
 	signKey        string
 	workers        int
+
+	pubKey *rsa.PublicKey
 
 	q      *queue
 	workCh chan struct{}
@@ -45,22 +51,36 @@ func New() Agent {
 			Host: "localhost",
 			Port: 8080,
 		},
+		ReportInterval: 10,
+		PollInterval:   2,
+		RateLimit:      1,
 	}
 
-	flag.Var(&cfg.Address, "a", "host:port to send metrics to")
-	flag.IntVar(&cfg.ReportInterval, "r", 10, "seconds between sending consecutive reports")
-	flag.IntVar(&cfg.PollInterval, "p", 2, "seconds between acquiring metrics")
-	flag.StringVar(&cfg.Key, "k", "", "signing key")
-	flag.IntVar(&cfg.RateLimit, "l", 1, "simultaneous requests")
+	confighelper.ConfigFromFile(&cfg)
 
-	flag.Parse()
+	flags := flag.NewFlagSet("muhame-agent", flag.ExitOnError)
+
+	flags.Func("c", "config file", func(s string) error {
+		return nil
+	})
+	flags.Func("config", "config file", func(s string) error {
+		return nil
+	})
+	flags.Var(&cfg.Address, "a", "host:port to send metrics to")
+	flags.IntVar(&cfg.ReportInterval, "r", cfg.ReportInterval, "seconds between sending consecutive reports")
+	flags.IntVar(&cfg.PollInterval, "p", cfg.PollInterval, "seconds between acquiring metrics")
+	flags.StringVar(&cfg.Key, "k", cfg.Key, "signing key")
+	flags.IntVar(&cfg.RateLimit, "l", cfg.RateLimit, "simultaneous requests")
+	flags.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "public key for message encryption")
+
+	flags.Parse(os.Args[1:])
 
 	err := env.Parse(&cfg)
 	if err != nil {
 		panic(err)
 	}
 
-	return Agent{
+	a := Agent{
 		address:        cfg.Address,
 		reportInterval: time.Duration(cfg.ReportInterval) * time.Second,
 		pollInterval:   time.Duration(cfg.PollInterval) * time.Second,
@@ -70,6 +90,13 @@ func New() Agent {
 		workCh:         make(chan struct{}),
 		wg:             &sync.WaitGroup{},
 	}
+
+	a.pubKey, err = crypt.LoadPublicKey(cfg.CryptoKey)
+	if err != nil {
+		a.pubKey = nil
+	}
+
+	return a
 }
 
 // Run starts the agent to collect all metrics and send them to the server.
@@ -92,7 +119,7 @@ func (a Agent) Run() {
 	go a.send(ctx)
 
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	<-sigChan
 	log.Print("Shutting down...")
@@ -109,7 +136,7 @@ func (a Agent) worker(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-a.workCh:
-			a.q.sendMetrics(httpclient.New().WithKey(a.signKey), a.address.StringWithProto())
+			a.q.sendMetrics(httpclient.New().WithKey(a.signKey).WithCrypto(a.pubKey), a.address.StringWithProto())
 		}
 	}
 }
