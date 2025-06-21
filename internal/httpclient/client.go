@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 
 	"github.com/go-resty/resty/v2"
@@ -14,13 +15,18 @@ import (
 	"github.com/nekr0z/muhame/internal/hash"
 )
 
-const defaultRetries = 3
+const (
+	defaultRetries = 3
+
+	HeaderRealIP = "X-Real-IP"
+)
 
 // Client is a client for HTTP requests.
 type Client struct {
 	c      *http.Client
 	key    string
 	pubKey *rsa.PublicKey
+	ip     string
 }
 
 // New returns a new Client.
@@ -29,6 +35,7 @@ func New() Client {
 		c: resty.New().
 			SetRetryCount(defaultRetries).
 			GetClient(),
+		ip: getLocalIP(),
 	}
 }
 
@@ -42,6 +49,22 @@ func (c Client) WithKey(key string) Client {
 func (c Client) WithCrypto(key *rsa.PublicKey) Client {
 	c.pubKey = key
 	return c
+}
+
+// getLocalIP returns the first non-loopback address of the machine.
+func getLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			return ipnet.IP.String()
+		}
+	}
+
+	return ""
 }
 
 // Send sends a request to the given endpoint.
@@ -66,6 +89,10 @@ func (c Client) Send(msg []byte, endpoint string) (int, error) {
 	if c.key != "" {
 		sig := hash.Signature(msg, c.key)
 		req.Header.Set(hash.Header, sig)
+	}
+
+	if c.ip != "" {
+		req.Header.Set(HeaderRealIP, c.ip)
 	}
 
 	resp, err := c.c.Do(req)

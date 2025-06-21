@@ -21,6 +21,7 @@ type envConfig struct {
 	DatabaseURL   string          `env:"DATABASE_DSN" json:"database_dsn"`
 	Key           string          `env:"KEY" json:"key"`
 	CryptoKey     string          `env:"CRYPTO_KEY" json:"crypto_key"`
+	TrustedSubnet string          `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 }
 
 func newConfig() config {
@@ -51,6 +52,7 @@ func newConfig() config {
 	flags.StringVar(&cfg.DatabaseURL, "d", cfg.DatabaseURL, "database URL")
 	flags.StringVar(&cfg.Key, "k", cfg.Key, "signing key")
 	flags.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "private key for message decryption")
+	flags.StringVar(&cfg.TrustedSubnet, "t", cfg.TrustedSubnet, "trusted subnet")
 
 	flags.Parse(os.Args[1:])
 
@@ -67,7 +69,8 @@ func newConfig() config {
 			Restore:     cfg.Restore,
 			DatabaseDSN: cfg.DatabaseURL,
 		},
-		signKey: cfg.Key,
+		signKey:       cfg.Key,
+		trustedSubnet: cfg.TrustedSubnet,
 	}
 
 	c.privateKey, err = crypt.LoadPrivateKey(cfg.CryptoKey)

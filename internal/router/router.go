@@ -14,7 +14,7 @@ import (
 )
 
 // New returns new router.
-func New(log *zap.Logger, st storage.Storage, key string, privateKey *rsa.PrivateKey) http.Handler {
+func New(log *zap.Logger, st storage.Storage, key string, privateKey *rsa.PrivateKey, trustedSubnet string) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(logger(log))
@@ -28,6 +28,11 @@ func New(log *zap.Logger, st storage.Storage, key string, privateKey *rsa.Privat
 	if privateKey != nil {
 		log.Info("using private key to decrypt messages")
 		r.Use(decrypt(privateKey))
+	}
+
+	if trustedSubnet != "" {
+		log.Info("using trusted subnet", zap.String("subnet", trustedSubnet))
+		r.Use(trusted(trustedSubnet))
 	}
 
 	r.Use(acceptGzip)
