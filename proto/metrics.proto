@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+package metrics;
+
+option go_package = "internal/proto";
+
+message Metric {
+  string name = 1;
+  oneof value {
+    Gauge gauge = 2;
+    Counter counter = 3;
+  }
+}
+
+message Gauge {
+  double value = 1;
+}
+
+message Counter {
+  int64 delta = 1;
+}
+
+service MetricsService {
+  rpc Update(MetricRequest) returns (google.protobuf.Empty);
+  rpc BulkUpdate(BulkRequest) returns (google.protobuf.Empty);
+}
+
+message MetricRequest {
+  oneof payload {
+    Metric metric = 1;
+    bytes data = 2;
+  }
+}
+
+message BulkRequest {
+  oneof payload {
+    Metrics metrics = 1;
+    bytes data = 2;
+  }
+}
+
+message Metrics {
+  repeated Metric metrics = 1;
+}

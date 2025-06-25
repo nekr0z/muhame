@@ -22,6 +22,7 @@ type envConfig struct {
 	Key           string          `env:"KEY" json:"key"`
 	CryptoKey     string          `env:"CRYPTO_KEY" json:"crypto_key"`
 	TrustedSubnet string          `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
+	GRPC          addr.NetAddress `env:"GRPC_ADDRESS" json:"grpc_address"`
 }
 
 func newConfig() config {
@@ -53,6 +54,7 @@ func newConfig() config {
 	flags.StringVar(&cfg.Key, "k", cfg.Key, "signing key")
 	flags.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "private key for message decryption")
 	flags.StringVar(&cfg.TrustedSubnet, "t", cfg.TrustedSubnet, "trusted subnet")
+	flags.Var(&cfg.GRPC, "g", "host:port to use for gRPC")
 
 	flags.Parse(os.Args[1:])
 
@@ -71,6 +73,7 @@ func newConfig() config {
 		},
 		signKey:       cfg.Key,
 		trustedSubnet: cfg.TrustedSubnet,
+		gRPCaddress:   cfg.GRPC,
 	}
 
 	c.privateKey, err = crypt.LoadPrivateKey(cfg.CryptoKey)

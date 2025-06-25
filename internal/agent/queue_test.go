@@ -62,7 +62,7 @@ func TestSendMetric(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			sendMetric(httpclient.New(), tt.m, srv.URL)
+			sendMetricHTTP(httpclient.New(), tt.m, srv.URL)
 		})
 	}
 }
@@ -112,7 +112,7 @@ func TestSendBulk(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	q.sendMetrics(httpclient.New(), srv.URL)
+	q.sendMetricsHTTP(httpclient.New(), srv.URL)
 }
 
 func TestSendBulk_Fallback(t *testing.T) {
@@ -145,7 +145,7 @@ func TestSendBulk_Fallback(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	q.sendMetrics(httpclient.New(), srv.URL)
+	q.sendMetricsHTTP(httpclient.New(), srv.URL)
 }
 
 func TestSendBulk_EmptyQueue(t *testing.T) {
@@ -156,5 +156,5 @@ func TestSendBulk_EmptyQueue(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	q.sendMetrics(httpclient.New(), srv.URL)
+	q.sendMetricsHTTP(httpclient.New(), srv.URL)
 }

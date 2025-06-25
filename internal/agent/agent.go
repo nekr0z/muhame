@@ -13,11 +13,15 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v11"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/nekr0z/muhame/internal/addr"
 	confighelper "github.com/nekr0z/muhame/internal/config"
 	"github.com/nekr0z/muhame/internal/crypt"
+	"github.com/nekr0z/muhame/internal/grpcclient"
 	"github.com/nekr0z/muhame/internal/httpclient"
+	"github.com/nekr0z/muhame/internal/proto"
 )
 
 type envConfig struct {
@@ -27,11 +31,13 @@ type envConfig struct {
 	Key            string          `env:"KEY" json:"key"`
 	RateLimit      int             `env:"RATE_LIMIT" json:"rate_limit"`
 	CryptoKey      string          `env:"CRYPTO_KEY" json:"crypto_key"`
+	GRPC           bool            `env:"GRPC" json:"grpc"`
 }
 
 // Agent is the metric-sending agent.
 type Agent struct {
 	address        addr.NetAddress
+	useGRPC        bool
 	reportInterval time.Duration
 	pollInterval   time.Duration
 	signKey        string
@@ -72,6 +78,7 @@ func New() Agent {
 	flags.StringVar(&cfg.Key, "k", cfg.Key, "signing key")
 	flags.IntVar(&cfg.RateLimit, "l", cfg.RateLimit, "simultaneous requests")
 	flags.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "public key for message encryption")
+	flags.BoolVar(&cfg.GRPC, "g", cfg.GRPC, "use gRPC")
 
 	flags.Parse(os.Args[1:])
 
@@ -82,6 +89,7 @@ func New() Agent {
 
 	a := Agent{
 		address:        cfg.Address,
+		useGRPC:        cfg.GRPC,
 		reportInterval: time.Duration(cfg.ReportInterval) * time.Second,
 		pollInterval:   time.Duration(cfg.PollInterval) * time.Second,
 		signKey:        cfg.Key,
@@ -100,17 +108,25 @@ func New() Agent {
 }
 
 // Run starts the agent to collect all metrics and send them to the server.
-func (a Agent) Run() {
+func (a Agent) Run(ctx context.Context) {
 	log.Printf("running and sending metrics to %s", a.address.String())
 	if a.signKey != "" {
 		log.Printf("using key \"%s\" to sign messages", a.signKey)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
+
+	grpcClient, err := a.grpcClient(ctx)
+	if err != nil {
+		log.Printf("failed to create gRPC client: %s", err)
+		cancel()
+
+		return
+	}
 
 	a.wg.Add(a.workers)
 	for range a.workers {
-		go a.worker(ctx)
+		go a.worker(ctx, grpcClient)
 	}
 
 	a.wg.Add(3)
@@ -121,22 +137,55 @@ func (a Agent) Run() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-	<-sigChan
-	log.Print("Shutting down...")
-	cancel()
+	select {
+	case <-sigChan:
+		log.Print("Shutting down...")
+	case <-ctx.Done():
+		log.Print("Context canceled, shutting down...")
+	}
 
+	cancel()
 	a.wg.Wait()
 	log.Print("Done.")
 }
 
-func (a Agent) worker(ctx context.Context) {
+func (a Agent) grpcClient(ctx context.Context) (proto.MetricsServiceClient, error) {
+	if !a.useGRPC {
+		return nil, nil
+	}
+
+	conn, err := grpc.NewClient(
+		a.address.String(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainUnaryInterceptor(
+			grpcclient.EncryptInterceptor(a.pubKey),
+			grpcclient.SignatureInterceptor(a.signKey),
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	go func() {
+		<-ctx.Done()
+		conn.Close()
+	}()
+
+	return proto.NewMetricsServiceClient(conn), nil
+}
+
+func (a Agent) worker(ctx context.Context, grpcClient proto.MetricsServiceClient) {
 	defer a.wg.Done()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-a.workCh:
-			a.q.sendMetrics(httpclient.New().WithKey(a.signKey).WithCrypto(a.pubKey), a.address.StringWithProto())
+			if a.useGRPC {
+				a.q.sendMetricsGRPC(ctx, grpcClient)
+			} else {
+				a.q.sendMetricsHTTP(httpclient.New().WithKey(a.signKey).WithCrypto(a.pubKey), a.address.StringWithProto())
+			}
 		}
 	}
 }
