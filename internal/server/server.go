@@ -18,9 +18,9 @@ import (
 
 	"github.com/nekr0z/muhame/internal/addr"
 	"github.com/nekr0z/muhame/internal/grpcserver"
-	"github.com/nekr0z/muhame/internal/proto"
 	"github.com/nekr0z/muhame/internal/router"
 	"github.com/nekr0z/muhame/internal/storage"
+	"github.com/nekr0z/muhame/pkg/proto"
 )
 
 // Run creates and runs the server.

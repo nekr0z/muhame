@@ -3,7 +3,7 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 package metrics;
 
-option go_package = "internal/proto";
+option go_package = "pkg/proto";
 
 message Metric {
   string name = 1;

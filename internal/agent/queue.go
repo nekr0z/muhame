@@ -12,7 +12,7 @@ import (
 
 	"github.com/nekr0z/muhame/internal/httpclient"
 	"github.com/nekr0z/muhame/internal/metrics"
-	"github.com/nekr0z/muhame/internal/proto"
+	"github.com/nekr0z/muhame/pkg/proto"
 )
 
 // queue stores metrics queued for sending by agent.

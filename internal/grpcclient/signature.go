@@ -9,7 +9,7 @@ import (
 	pb "google.golang.org/protobuf/proto"
 
 	"github.com/nekr0z/muhame/internal/hash"
-	"github.com/nekr0z/muhame/internal/proto"
+	"github.com/nekr0z/muhame/pkg/proto"
 )
 
 // SignatureInterceptor returns a grpc.UnaryClientInterceptor that signs the

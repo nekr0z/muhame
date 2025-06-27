@@ -18,7 +18,7 @@ import (
 
 	"github.com/nekr0z/muhame/internal/crypt"
 	"github.com/nekr0z/muhame/internal/grpcserver"
-	"github.com/nekr0z/muhame/internal/proto"
+	"github.com/nekr0z/muhame/pkg/proto"
 )
 
 var (

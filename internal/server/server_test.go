@@ -17,8 +17,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/nekr0z/muhame/internal/addr"
-	"github.com/nekr0z/muhame/internal/proto"
 	"github.com/nekr0z/muhame/internal/storage"
+	"github.com/nekr0z/muhame/pkg/proto"
 )
 
 func TestRun_http(t *testing.T) {

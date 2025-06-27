@@ -9,7 +9,7 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/nekr0z/muhame/internal/metrics"
-	"github.com/nekr0z/muhame/internal/proto"
+	"github.com/nekr0z/muhame/pkg/proto"
 )
 
 // MetricsServer implements the grpc metrics service.

@@ -14,8 +14,8 @@ import (
 
 	"github.com/nekr0z/muhame/internal/grpcserver"
 	"github.com/nekr0z/muhame/internal/metrics"
-	"github.com/nekr0z/muhame/internal/proto"
 	"github.com/nekr0z/muhame/internal/storage"
+	"github.com/nekr0z/muhame/pkg/proto"
 )
 
 func TestUpdate(t *testing.T) {

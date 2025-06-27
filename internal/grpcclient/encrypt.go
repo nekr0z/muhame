@@ -8,7 +8,7 @@ import (
 	pb "google.golang.org/protobuf/proto"
 
 	"github.com/nekr0z/muhame/internal/crypt"
-	"github.com/nekr0z/muhame/internal/proto"
+	"github.com/nekr0z/muhame/pkg/proto"
 )
 
 // EncryptInterceptor returns a grpc.UnaryClientInterceptor that encrypts the

@@ -21,7 +21,7 @@ import (
 	"github.com/nekr0z/muhame/internal/crypt"
 	"github.com/nekr0z/muhame/internal/grpcclient"
 	"github.com/nekr0z/muhame/internal/httpclient"
-	"github.com/nekr0z/muhame/internal/proto"
+	"github.com/nekr0z/muhame/pkg/proto"
 )
 
 type envConfig struct {

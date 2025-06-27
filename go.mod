@@ -10,6 +10,7 @@ require (
 	github.com/go-critic/go-critic v0.13.0
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/golang-migrate/migrate/v4 v4.18.2
+	github.com/golang/protobuf v1.5.4
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/kisielk/errcheck v1.9.0
