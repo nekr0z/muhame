@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/nekr0z/muhame/internal/httpclient"
 	"github.com/nekr0z/muhame/internal/metrics"
+	"github.com/nekr0z/muhame/pkg/proto"
 )
 
 // queue stores metrics queued for sending by agent.
@@ -51,31 +53,74 @@ func (q *queue) pop() *queuedMetric {
 	return m
 }
 
-func (q *queue) sendMetrics(c httpclient.Client, addr string) {
+func (q *queue) sendMetricsHTTP(c httpclient.Client, addr string) {
+	mm := q.popAll()
+
+	if len(mm) == 0 {
+		return
+	}
+
+	sendAllHTTP(c, addr, mm)
+}
+
+func (q *queue) sendMetricsGRPC(ctx context.Context, c proto.MetricsServiceClient) {
+	mm := q.popAll()
+
+	if len(mm) == 0 {
+		return
+	}
+
+	sendAllGRPC(ctx, c, mm)
+}
+
+func (q *queue) popAll() []queuedMetric {
 	mm := make([]queuedMetric, 0)
 
 	for m := q.pop(); m != nil; m = q.pop() {
 		mm = append(mm, *m)
 	}
 
-	if len(mm) == 0 {
-		return
-	}
-
-	sendAll(c, addr, mm)
+	return mm
 }
 
-func sendAll(c httpclient.Client, addr string, mm []queuedMetric) {
-	if sendBulk(c, addr, mm) == nil {
+func sendAllHTTP(c httpclient.Client, addr string, mm []queuedMetric) {
+	if sendBulkHTTP(c, addr, mm) == nil {
 		return
 	}
 
 	for _, m := range mm {
-		sendMetric(c, m, addr)
+		sendMetricHTTP(c, m, addr)
 	}
 }
 
-func sendBulk(c httpclient.Client, addr string, mm []queuedMetric) error {
+func sendAllGRPC(ctx context.Context, c proto.MetricsServiceClient, mm []queuedMetric) {
+	pm := make([]*proto.Metric, len(mm))
+
+	for i, m := range mm {
+		pm[i] = queuedMetricToProto(m)
+	}
+
+	if _, err := c.BulkUpdate(ctx, &proto.BulkRequest{
+		Payload: &proto.BulkRequest_Metrics{
+			Metrics: &proto.Metrics{
+				Metrics: pm,
+			},
+		},
+	}); err == nil {
+		return
+	}
+
+	for _, met := range pm {
+		// error is ignored to match HTTP behavior
+		_, _ = c.Update(ctx, &proto.MetricRequest{
+			Payload: &proto.MetricRequest_Metric{
+				Metric: met,
+			},
+		})
+	}
+}
+
+func sendBulkHTTP(c httpclient.Client, addr string, mm []queuedMetric) error {
 	b := zipBulk(mm)
 
 	code, err := c.Send(b.Bytes(), endpointBulk(addr))
@@ -138,7 +183,7 @@ func zipBulk(mm []queuedMetric) *bytes.Buffer {
 	return &b
 }
 
-func sendMetric(c httpclient.Client, m queuedMetric, addr string) {
+func sendMetricHTTP(c httpclient.Client, m queuedMetric, addr string) {
 	bb := metrics.ToJSON(m.val, m.name)
 
 	b := compress(bb)
@@ -174,4 +219,29 @@ func compress(b []byte) bytes.Buffer {
 	_ = w.Close()
 
 	return buf
+}
+
+func queuedMetricToProto(m queuedMetric) *proto.Metric {
+	switch v := m.val.(type) {
+	case metrics.Counter:
+		return &proto.Metric{
+			Name: m.name,
+			Value: &proto.Metric_Counter{
+				Counter: &proto.Counter{
+					Delta: int64(v),
+				},
+			},
+		}
+	case metrics.Gauge:
+		return &proto.Metric{
+			Name: m.name,
+			Value: &proto.Metric_Gauge{
+				Gauge: &proto.Gauge{
+					Value: float64(v),
+				},
+			},
+		}
+	default:
+		return nil
+	}
 }

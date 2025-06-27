@@ -32,3 +32,19 @@ func TestSend_Signed(t *testing.T) {
 	_, err := c.Send([]byte(msg), srv.URL)
 	assert.NoError(t, err)
 }
+
+func TestSend_RealIP(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip := r.Header.Get("X-Real-IP")
+		assert.NotEmpty(t, ip, "X-Real-IP header should not be empty")
+		assert.NotEqual(t, "127.0.0.1", ip, "X-Real-IP should not be loopback")
+		assert.NotEqual(t, "::1", ip, "X-Real-IP should not be IPv6 loopback")
+
+		m, _ := io.ReadAll(r.Body)
+		assert.Equal(t, "test message", string(m))
+	}))
+
+	c := httpclient.New()
+	_, err := c.Send([]byte("test message"), srv.URL)
+	assert.NoError(t, err)
+}

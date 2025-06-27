@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/nekr0z/muhame/internal/agent"
@@ -19,5 +20,5 @@ func init() {
 }
 
 func main() {
-	agent.New().Run()
+	agent.New().Run(context.Background())
 }

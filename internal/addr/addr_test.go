@@ -48,3 +48,31 @@ func Test_netAddress_Set(t *testing.T) {
 		})
 	}
 }
+
+func TestStringWithProto(t *testing.T) {
+	a := &NetAddress{Host: "localhost", Port: 8080}
+	assert.Equal(t, "http://localhost:8080", a.StringWithProto())
+}
+
+func TestSet_error(t *testing.T) {
+	tests := []string{
+		"no:such:thing",
+		"bad:port",
+	}
+	a := &NetAddress{}
+
+	for _, tt := range tests {
+		t.Run(tt, func(t *testing.T) {
+			err := a.Set(tt)
+			assert.Error(t, err)
+		})
+	}
+}
+
+func TestUnmarshalText(t *testing.T) {
+	a := &NetAddress{}
+	err := a.UnmarshalText([]byte("localhost:8080"))
+	assert.NoError(t, err)
+	assert.Equal(t, "localhost", a.Host)
+	assert.Equal(t, 8080, a.Port)
+}

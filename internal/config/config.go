@@ -27,7 +27,10 @@ func ConfigFromFile(cfg any) {
 			continue
 		}
 
-		parseConfig(cfg, strings.TrimPrefix(v, "CONFIG="))
+		err := parseConfig(cfg, strings.TrimPrefix(v, "CONFIG="))
+		if err != nil {
+			os.Exit(2)
+		}
 	}
 }
 
@@ -35,13 +38,13 @@ func parseConfig(cfg any, fileName string) error {
 	b, err := os.ReadFile(fileName)
 	if err != nil {
 		fmt.Printf("failed to read config file: %s\n", err)
-		os.Exit(2)
+		return err
 	}
 
 	err = json.Unmarshal(b, cfg)
 	if err != nil {
 		fmt.Printf("failed to parse config file: %s", err)
-		os.Exit(2)
+		return err
 	}
 
 	return nil
